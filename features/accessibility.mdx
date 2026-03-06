@@ -1,0 +1,558 @@
+---
+title: Accessibility Features
+description: Comprehensive accessibility tools including font size adjustment, high contrast mode, text-to-speech, accessible fonts, and large cursor support
+icon: universal-access
+---
+
+## Overview
+
+DigiForum is designed with accessibility at its core, providing a comprehensive suite of accessibility features to ensure the platform is usable by people with various physical disabilities. All accessibility settings are preserved across sessions using localStorage and can be toggled on/off with immediate visual feedback.
+
+## Accessibility Settings Model
+
+The accessibility system is managed through a settings interface:
+
+```typescript AccessibilityMenu.tsx:14-20
+interface AccessibilitySettings {
+  fontSize: number;
+  highContrast: boolean;
+  readAloud: boolean;
+  accessibleFont: boolean;
+  largeCursor: boolean;
+}
+```
+
+### Default Settings
+
+```typescript AccessibilityMenu.tsx:22-28
+const DEFAULT_SETTINGS: AccessibilitySettings = {
+  fontSize: 100,
+  highContrast: false,
+  readAloud: false,
+  accessibleFont: false,
+  largeCursor: false,
+};
+```
+
+## Font Size Adjustment
+
+### Size Range
+
+Users can adjust the font size from 80% to 150% in 10% increments:
+
+<CardGroup cols={2}>
+  <Card title="Minimum Size" icon="text-height">
+    80% - Compact view for users who prefer smaller text
+  </Card>
+  
+  <Card title="Default Size" icon="text-height">
+    100% - Standard size for normal viewing
+  </Card>
+  
+  <Card title="Maximum Size" icon="text-height">
+    150% - Large text for improved readability
+  </Card>
+  
+  <Card title="Increment" icon="plus-minus">
+    10% - Fine-grained control over text size
+  </Card>
+</CardGroup>
+
+### Implementation
+
+```typescript AccessibilityMenu.tsx:72-82
+const increaseFontSize = () => {
+  const newSize = Math.min(settings.fontSize + 10, 150);
+  updateSettings({ fontSize: newSize });
+  toast.success(`Tamaño de texto: ${newSize}%`);
+};
+
+const decreaseFontSize = () => {
+  const newSize = Math.max(settings.fontSize - 10, 80);
+  updateSettings({ fontSize: newSize });
+  toast.success(`Tamaño de texto: ${newSize}%`);
+};
+```
+
+The font size is applied to the root HTML element:
+
+```typescript AccessibilityMenu.tsx:44
+document.documentElement.style.fontSize = `${newSettings.fontSize}%`;
+```
+
+<Note>
+  Font size adjustments affect the entire application, including all text, buttons, and UI elements, ensuring consistent scaling across all pages.
+</Note>
+
+## High Contrast Mode
+
+### Toggle Implementation
+
+```typescript AccessibilityMenu.tsx:84-87
+const toggleHighContrast = () => {
+  updateSettings({ highContrast: !settings.highContrast });
+  toast.success(settings.highContrast ? "Modo normal activado" : "Alto contraste activado");
+};
+```
+
+### CSS Application
+
+High contrast mode is applied via a body class:
+
+```typescript AccessibilityMenu.tsx:46-50
+if (newSettings.highContrast) {
+  document.body.classList.add("high-contrast");
+} else {
+  document.body.classList.remove("high-contrast");
+}
+```
+
+<Tip>
+  The `high-contrast` class can be styled in your global CSS to increase color contrast ratios, making text and UI elements more distinguishable for users with visual impairments.
+</Tip>
+
+## Text-to-Speech (Read Aloud)
+
+### Overview
+
+The text-to-speech feature uses the Web Speech API to read selected text aloud:
+
+```typescript AccessibilityMenu.tsx:89-100
+const toggleReadAloud = () => {
+  const newState = !settings.readAloud;
+  updateSettings({ readAloud: newState });
+  
+  if (newState) {
+    toast.success("Lectura en voz alta activada. Selecciona texto para escucharlo.");
+  } else {
+    toast.success("Lectura en voz alta desactivada");
+    window.speechSynthesis.cancel();
+    setIsReading(false);
+  }
+};
+```
+
+### Speech Synthesis
+
+When text is selected, it's read aloud using Spanish voice:
+
+```typescript AccessibilityMenu.tsx:102-110
+const speakText = (text: string) => {
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "es-ES";
+  utterance.rate = 0.9;
+  utterance.onstart = () => setIsReading(true);
+  utterance.onend = () => setIsReading(false);
+  window.speechSynthesis.speak(utterance);
+};
+```
+
+### Text Selection Handler
+
+An event listener captures text selection:
+
+```typescript AccessibilityMenu.tsx:122-140
+useEffect(() => {
+  const handleTextSelection = () => {
+    const selectedText = window.getSelection()?.toString().trim();
+    if (selectedText && selectedText.length > 0) {
+      speakText(selectedText);
+    }
+  };
+
+  if (settings.readAloud) {
+    document.addEventListener("mouseup", handleTextSelection);
+  } else {
+    document.removeEventListener("mouseup", handleTextSelection);
+  }
+
+  return () => {
+    document.removeEventListener("mouseup", handleTextSelection);
+    window.speechSynthesis.cancel();
+  };
+}, [settings.readAloud]);
+```
+
+<Warning>
+  The Web Speech API requires browser support. It works in Chrome, Edge, Safari, and most modern browsers, but may have limited support in older browsers.
+</Warning>
+
+### Speech Parameters
+
+<ParamField path="lang" type="string" default="es-ES">
+  Language setting for Spanish speech synthesis
+</ParamField>
+
+<ParamField path="rate" type="number" default="0.9">
+  Speech rate (0.9 = slightly slower than normal for clarity)
+</ParamField>
+
+## Accessible Font
+
+### Toggle Implementation
+
+```typescript AccessibilityMenu.tsx:112-115
+const toggleAccessibleFont = () => {
+  updateSettings({ accessibleFont: !settings.accessibleFont });
+  toast.success(settings.accessibleFont ? "Fuente normal" : "Fuente accesible activada");
+};
+```
+
+### CSS Application
+
+```typescript AccessibilityMenu.tsx:52-56
+if (newSettings.accessibleFont) {
+  document.body.classList.add("accessible-font");
+} else {
+  document.body.classList.remove("accessible-font");
+}
+```
+
+<Tip>
+  The `accessible-font` class typically applies fonts like OpenDyslexic, Comic Sans, or other fonts designed for improved readability. Define this in your global CSS based on your accessibility requirements.
+</Tip>
+
+## Large Cursor
+
+### Toggle Implementation
+
+```typescript AccessibilityMenu.tsx:117-120
+const toggleLargeCursor = () => {
+  updateSettings({ largeCursor: !settings.largeCursor });
+  toast.success(settings.largeCursor ? "Cursor normal" : "Cursor grande activado");
+};
+```
+
+### CSS Application
+
+```typescript AccessibilityMenu.tsx:58-62
+if (newSettings.largeCursor) {
+  document.body.classList.add("large-cursor");
+} else {
+  document.body.classList.remove("large-cursor");
+}
+```
+
+<Note>
+  The large cursor feature helps users with motor disabilities or visual impairments by making the cursor more visible and easier to track.
+</Note>
+
+## Accessibility Menu UI
+
+### Floating Button
+
+The accessibility menu is accessible via a floating button:
+
+```tsx AccessibilityMenu.tsx:143-152
+<div className="fixed bottom-6 right-6 z-50">
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button
+        size="icon"
+        className="h-14 w-14 rounded-full shadow-elegant hover:shadow-glow transition-all"
+        aria-label="Menú de accesibilidad"
+      >
+        <Settings className="h-6 w-6" />
+      </Button>
+    </DropdownMenuTrigger>
+```
+
+### Menu Items
+
+Each accessibility feature is a menu item with clear labeling:
+
+```tsx AccessibilityMenu.tsx:154-192
+<DropdownMenuContent align="end" className="w-64">
+  <DropdownMenuLabel>Opciones de Accesibilidad</DropdownMenuLabel>
+  <DropdownMenuSeparator />
+  
+  <DropdownMenuItem onClick={increaseFontSize} className="cursor-pointer">
+    <Plus className="mr-2 h-4 w-4" />
+    Aumentar texto ({settings.fontSize}%)
+  </DropdownMenuItem>
+  
+  <DropdownMenuItem onClick={decreaseFontSize} className="cursor-pointer">
+    <Minus className="mr-2 h-4 w-4" />
+    Disminuir texto ({settings.fontSize}%)
+  </DropdownMenuItem>
+  
+  <DropdownMenuSeparator />
+  
+  <DropdownMenuItem onClick={toggleHighContrast} className="cursor-pointer">
+    <Eye className="mr-2 h-4 w-4" />
+    {settings.highContrast ? "✓ " : ""}Alto contraste
+  </DropdownMenuItem>
+  
+  <DropdownMenuItem onClick={toggleReadAloud} className="cursor-pointer">
+    <Volume2 className="mr-2 h-4 w-4" />
+    {settings.readAloud ? "✓ " : ""}Lectura en voz alta
+    {isReading && " (leyendo...)"}
+  </DropdownMenuItem>
+  
+  <DropdownMenuItem onClick={toggleAccessibleFont} className="cursor-pointer">
+    <Type className="mr-2 h-4 w-4" />
+    {settings.accessibleFont ? "✓ " : ""}Fuente accesible
+  </DropdownMenuItem>
+  
+  <DropdownMenuItem onClick={toggleLargeCursor} className="cursor-pointer">
+    <MousePointer className="mr-2 h-4 w-4" />
+    {settings.largeCursor ? "✓ " : ""}Cursor grande
+  </DropdownMenuItem>
+</DropdownMenuContent>
+```
+
+<CardGroup cols={3}>
+  <Card title="Visual Indicators" icon="check">
+    Checkmarks (✓) show active features
+  </Card>
+  
+  <Card title="Icons" icon="icons">
+    Each option has a descriptive icon
+  </Card>
+  
+  <Card title="Current Values" icon="display">
+    Font size shows current percentage
+  </Card>
+</CardGroup>
+
+## Settings Persistence
+
+### Loading Settings
+
+Settings are loaded from localStorage on mount:
+
+```typescript AccessibilityMenu.tsx:34-41
+useEffect(() => {
+  const saved = localStorage.getItem("accessibility-settings");
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    setSettings(parsed);
+    applySettings(parsed);
+  }
+}, []);
+```
+
+### Saving Settings
+
+Settings are automatically saved when changed:
+
+```typescript AccessibilityMenu.tsx:65-70
+const updateSettings = (updates: Partial<AccessibilitySettings>) => {
+  const newSettings = { ...settings, ...updates };
+  setSettings(newSettings);
+  localStorage.setItem("accessibility-settings", JSON.stringify(newSettings));
+  applySettings(newSettings);
+};
+```
+
+### Applying Settings
+
+All settings are applied immediately:
+
+```typescript AccessibilityMenu.tsx:43-63
+const applySettings = (newSettings: AccessibilitySettings) => {
+  document.documentElement.style.fontSize = `${newSettings.fontSize}%`;
+  
+  if (newSettings.highContrast) {
+    document.body.classList.add("high-contrast");
+  } else {
+    document.body.classList.remove("high-contrast");
+  }
+
+  if (newSettings.accessibleFont) {
+    document.body.classList.add("accessible-font");
+  } else {
+    document.body.classList.remove("accessible-font");
+  }
+
+  if (newSettings.largeCursor) {
+    document.body.classList.add("large-cursor");
+  } else {
+    document.body.classList.remove("large-cursor");
+  }
+};
+```
+
+## ARIA Support
+
+The accessibility menu includes proper ARIA attributes:
+
+```tsx
+aria-label="Menú de accesibilidad"
+aria-label="Escribe tu comentario"
+aria-required="true"
+aria-pressed={selectedCategory === "all"}
+aria-label={`Categoría: ${post.category}`}
+```
+
+<Note>
+  All interactive elements throughout DigiForum include appropriate ARIA labels for screen reader compatibility.
+</Note>
+
+## Keyboard Navigation
+
+The accessibility menu supports full keyboard navigation:
+
+- **Tab**: Navigate between menu items
+- **Enter/Space**: Activate selected item
+- **Escape**: Close the menu
+- **Arrow keys**: Navigate within dropdown menu
+
+## Toast Notifications
+
+All accessibility changes provide immediate feedback via toast notifications:
+
+```typescript
+toast.success(`Tamaño de texto: ${newSize}%`);
+toast.success("Alto contraste activado");
+toast.success("Lectura en voz alta activada. Selecciona texto para escucharlo.");
+toast.success("Fuente accesible activada");
+toast.success("Cursor grande activado");
+```
+
+## Feature Summary
+
+<AccordionGroup>
+  <Accordion title="Font Size Adjustment" icon="text-height">
+    **Purpose**: Helps users with visual impairments read content more easily
+    
+    **Range**: 80% - 150%
+    
+    **Increment**: 10%
+    
+    **Scope**: Affects entire application
+  </Accordion>
+  
+  <Accordion title="High Contrast Mode" icon="eye">
+    **Purpose**: Increases color contrast for users with low vision
+    
+    **Implementation**: CSS class toggle
+    
+    **Scope**: Global styling changes
+    
+    **Customization**: Requires CSS definitions
+  </Accordion>
+  
+  <Accordion title="Text-to-Speech" icon="volume-2">
+    **Purpose**: Reads selected text aloud for users with visual impairments or reading difficulties
+    
+    **Language**: Spanish (es-ES)
+    
+    **Rate**: 0.9x speed (slightly slower for clarity)
+    
+    **Activation**: Select any text with mouse
+  </Accordion>
+  
+  <Accordion title="Accessible Font" icon="type">
+    **Purpose**: Uses fonts designed for improved readability
+    
+    **Common choices**: OpenDyslexic, Comic Sans, Verdana
+    
+    **Implementation**: CSS class toggle
+    
+    **Scope**: All text content
+  </Accordion>
+  
+  <Accordion title="Large Cursor" icon="mouse-pointer">
+    **Purpose**: Makes cursor more visible for users with motor or visual impairments
+    
+    **Implementation**: CSS cursor property
+    
+    **Scope**: All interactive elements
+    
+    **Customization**: Requires CSS definitions
+  </Accordion>
+</AccordionGroup>
+
+## Browser Compatibility
+
+<CardGroup cols={2}>
+  <Card title="Font Size" icon="check">
+    ✅ All modern browsers
+  </Card>
+  
+  <Card title="High Contrast" icon="check">
+    ✅ All browsers with CSS support
+  </Card>
+  
+  <Card title="Text-to-Speech" icon="circle-exclamation">
+    ⚠️ Chrome, Edge, Safari (limited in Firefox)
+  </Card>
+  
+  <Card title="Accessible Font" icon="check">
+    ✅ All browsers with CSS support
+  </Card>
+  
+  <Card title="Large Cursor" icon="check">
+    ✅ All browsers with CSS support
+  </Card>
+  
+  <Card title="localStorage" icon="check">
+    ✅ All modern browsers
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Warning>
+  Always test accessibility features with actual users who have disabilities. Automated testing and developer assumptions cannot replace real user feedback.
+</Warning>
+
+<Tip>
+  Consider implementing keyboard shortcuts for quick access to accessibility features:
+  - `Ctrl + Plus`: Increase font size
+  - `Ctrl + Minus`: Decrease font size
+  - `Ctrl + Alt + C`: Toggle high contrast
+  - `Ctrl + Alt + S`: Toggle text-to-speech
+</Tip>
+
+## Future Enhancements
+
+Potential improvements to the accessibility system:
+
+<CardGroup cols={2}>
+  <Card title="Keyboard Shortcuts" icon="keyboard">
+    Add customizable keyboard shortcuts for all accessibility features
+  </Card>
+  
+  <Card title="Screen Reader Mode" icon="braille">
+    Optimize layout and navigation specifically for screen readers
+  </Card>
+  
+  <Card title="Color Blindness Filters" icon="palette">
+    Add filters for different types of color blindness
+  </Card>
+  
+  <Card title="Motion Reduction" icon="ban">
+    Reduce or disable animations for users sensitive to motion
+  </Card>
+  
+  <Card title="Voice Commands" icon="microphone">
+    Enable voice control for navigation and actions
+  </Card>
+  
+  <Card title="Custom Themes" icon="swatchbook">
+    Allow users to create custom color schemes
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="shield-check" href="/features/authentication">
+    Learn about user authentication and profiles
+  </Card>
+  
+  <Card title="Posts" icon="newspaper" href="/features/posts">
+    Understand post creation and management
+  </Card>
+  
+  <Card title="Community Features" icon="users" href="/features/community">
+    Explore likes, comments, and social interactions
+  </Card>
+  
+  <Card title="Development Setup" icon="code" href="/reference/setup">
+    Set up your development environment
+  </Card>
+</CardGroup>

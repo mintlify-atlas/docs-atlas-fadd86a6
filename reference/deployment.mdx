@@ -1,0 +1,393 @@
+---
+title: Deployment
+description: Deploy DigiForum to production on Netlify
+---
+
+## Overview
+
+DigiForum is deployed on Netlify, providing fast global CDN, automatic HTTPS, and continuous deployment from Git. The live production site is available at:
+
+<Card title="Live Demo" icon="globe" href="https://digiforum.netlify.app">
+  https://digiforum.netlify.app
+</Card>
+
+## Build Configuration
+
+### Production Build
+
+To create an optimized production build:
+
+<CodeGroup>
+  ```bash npm
+  npm run build
+  ```
+
+  ```bash yarn
+  yarn build
+  ```
+
+  ```bash pnpm
+  pnpm build
+  ```
+</CodeGroup>
+
+This command:
+- Compiles TypeScript to JavaScript
+- Bundles and optimizes assets
+- Minifies code for production
+- Generates source maps
+- Outputs to the `dist/` directory
+
+### Development Build
+
+For testing with debugging information:
+
+<CodeGroup>
+  ```bash npm
+  npm run build:dev
+  ```
+
+  ```bash yarn
+  yarn build:dev
+  ```
+
+  ```bash pnpm
+  pnpm build:dev
+  ```
+</CodeGroup>
+
+### Local Preview
+
+Test the production build locally before deploying:
+
+<CodeGroup>
+  ```bash npm
+  npm run preview
+  ```
+
+  ```bash yarn
+  yarn preview
+  ```
+
+  ```bash pnpm
+  pnpm preview
+  ```
+</CodeGroup>
+
+## Netlify Deployment
+
+### Initial Setup
+
+<Steps>
+  <Step title="Create Netlify account">
+    Sign up for a free account at [netlify.com](https://www.netlify.com) if you don't have one.
+  </Step>
+
+  <Step title="Connect repository">
+    1. Click "Add new site" → "Import an existing project"
+    2. Choose your Git provider (GitHub, GitLab, Bitbucket)
+    3. Authorize Netlify to access your repositories
+    4. Select the DigiForum repository
+  </Step>
+
+  <Step title="Configure build settings">
+    Set the following build configuration:
+
+    | Setting | Value |
+    |---------|-------|
+    | **Base directory** | (leave empty) |
+    | **Build command** | `npm run build` |
+    | **Publish directory** | `dist` |
+    | **Node version** | 18 or higher |
+  </Step>
+
+  <Step title="Deploy site">
+    Click "Deploy site" to start your first deployment. Netlify will:
+    - Install dependencies
+    - Run the build command
+    - Deploy the `dist/` directory to their CDN
+  </Step>
+</Steps>
+
+### Continuous Deployment
+
+Once configured, Netlify automatically:
+- Deploys on every push to the main branch
+- Builds preview deployments for pull requests
+- Provides unique URLs for each deployment
+
+<Info>
+  Every commit to your repository triggers an automatic build and deployment.
+</Info>
+
+## Build Settings
+
+### netlify.toml Configuration
+
+Create a `netlify.toml` file in your project root for advanced configuration:
+
+```toml
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+```
+
+### SPA Routing
+
+<Warning>
+  Configure redirects for client-side routing to work properly.
+</Warning>
+
+The redirect rule `/* → /index.html` ensures that React Router handles all routes client-side.
+
+## Environment Configuration
+
+### Environment Variables
+
+If your application requires environment variables:
+
+<Steps>
+  <Step title="Create .env file locally">
+    ```bash
+    VITE_API_URL=https://api.example.com
+    VITE_APP_NAME=DigiForum
+    ```
+
+    <Info>
+      Vite requires environment variables to be prefixed with `VITE_`
+    </Info>
+  </Step>
+
+  <Step title="Add to Netlify">
+    1. Go to Site settings → Environment variables
+    2. Click "Add a variable"
+    3. Enter key-value pairs
+    4. Select deployment contexts (Production, Deploy Previews, Branch deploys)
+  </Step>
+
+  <Step title="Access in code">
+    ```typescript
+    const apiUrl = import.meta.env.VITE_API_URL
+    ```
+  </Step>
+</Steps>
+
+### Current Configuration
+
+<Note>
+  DigiForum currently uses **LocalStorage** for data persistence and does not require backend API configuration.
+</Note>
+
+## Deployment Contexts
+
+Netlify provides three deployment contexts:
+
+<CardGroup cols={3}>
+  <Card title="Production" icon="check" iconType="duotone">
+    Main branch deployments
+  </Card>
+  <Card title="Deploy Previews" icon="eye" iconType="duotone">
+    Pull request previews
+  </Card>
+  <Card title="Branch Deploys" icon="code-branch" iconType="duotone">
+    Feature branch deployments
+  </Card>
+</CardGroup>
+
+You can configure different settings for each context.
+
+## Build Optimization
+
+### Performance Tips
+
+<AccordionGroup>
+  <Accordion title="Enable build cache">
+    Netlify automatically caches `node_modules` between builds. To clear cache:
+    
+    1. Go to Site settings → Build & deploy
+    2. Click "Clear cache and retry deploy"
+  </Accordion>
+
+  <Accordion title="Optimize dependencies">
+    Review your dependencies regularly:
+    
+    ```bash
+    npm audit
+    npm outdated
+    ```
+    
+    Remove unused dependencies to reduce build time and bundle size.
+  </Accordion>
+
+  <Accordion title="Use build plugins">
+    Install Netlify build plugins for:
+    - Image optimization
+    - Bundle analysis
+    - Lighthouse reports
+    
+    Browse plugins at [netlify.com/integrations](https://www.netlify.com/integrations)
+  </Accordion>
+</AccordionGroup>
+
+### Bundle Analysis
+
+Analyze your production bundle:
+
+```bash
+# Install bundle analyzer
+npm install --save-dev rollup-plugin-visualizer
+
+# Add to vite.config.ts
+import { visualizer } from 'rollup-plugin-visualizer'
+
+export default defineConfig({
+  plugins: [react(), visualizer()]
+})
+
+# Build and view report
+npm run build
+# Open stats.html in browser
+```
+
+## Custom Domain
+
+To use a custom domain:
+
+<Steps>
+  <Step title="Add domain in Netlify">
+    1. Go to Site settings → Domain management
+    2. Click "Add custom domain"
+    3. Enter your domain name
+  </Step>
+
+  <Step title="Configure DNS">
+    Add DNS records provided by Netlify:
+    
+    - **A Record**: Point to Netlify's load balancer
+    - **CNAME**: Point to your Netlify subdomain
+  </Step>
+
+  <Step title="Enable HTTPS">
+    Netlify automatically provisions Let's Encrypt SSL certificates.
+    
+    <Info>
+      HTTPS is enabled by default and renews automatically.
+    </Info>
+  </Step>
+</Steps>
+
+## Monitoring & Analytics
+
+### Build Notifications
+
+Configure notifications for build events:
+
+1. Go to Site settings → Build & deploy → Deploy notifications
+2. Add notifications for:
+   - Deploy started
+   - Deploy succeeded
+   - Deploy failed
+3. Choose notification method (email, Slack, webhook)
+
+### Analytics
+
+Enable Netlify Analytics for:
+- Page views and unique visitors
+- Top pages and resources
+- Traffic sources
+- Bandwidth usage
+
+<Warning>
+  Netlify Analytics is a paid feature. Check pricing at [netlify.com/pricing](https://www.netlify.com/pricing)
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Build fails with 'command not found'">
+    Ensure the build command in Netlify matches your `package.json` scripts:
+    
+    ```json
+    "scripts": {
+      "build": "vite build"
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="404 errors on refresh">
+    Add redirect rules for SPA routing:
+    
+    ```toml
+    [[redirects]]
+      from = "/*"
+      to = "/index.html"
+      status = 200
+    ```
+  </Accordion>
+
+  <Accordion title="Build timeout">
+    If builds take too long:
+    
+    1. Optimize dependencies
+    2. Use build cache
+    3. Consider upgrading to Pro plan for longer build times
+  </Accordion>
+
+  <Accordion title="Environment variables not working">
+    Remember to:
+    
+    1. Prefix variables with `VITE_`
+    2. Redeploy after adding variables
+    3. Check deployment context (Production vs Deploy Preview)
+  </Accordion>
+</AccordionGroup>
+
+## Rollback & Recovery
+
+### Rollback to Previous Deploy
+
+If a deployment introduces issues:
+
+<Steps>
+  <Step title="View deploy history">
+    Go to Deploys tab to see all previous deployments
+  </Step>
+
+  <Step title="Select deployment">
+    Click on a successful previous deployment
+  </Step>
+
+  <Step title="Publish deploy">
+    Click "Publish deploy" to make it live
+  </Step>
+</Steps>
+
+<Info>
+  Rollbacks are instant and don't require rebuilding.
+</Info>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Local Setup" icon="laptop-code" href="/reference/setup">
+    Set up your local development environment
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/reference/architecture">
+    Learn about the platform architecture
+  </Card>
+</CardGroup>

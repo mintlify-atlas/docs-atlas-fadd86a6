@@ -1,0 +1,392 @@
+---
+title: 'AccessibilityMenu Component'
+description: 'Floating accessibility menu with customizable settings for users with disabilities'
+---
+
+## Overview
+
+The `AccessibilityMenu` component provides a comprehensive set of accessibility features specifically designed for users with physical disabilities. It offers a floating button with a dropdown menu containing various accessibility settings that persist across sessions.
+
+## Location
+
+```
+~/workspace/source/src/components/AccessibilityMenu.tsx
+```
+
+## Features
+
+The AccessibilityMenu is a standalone component with no required props. It manages its own state and provides the following features:
+
+<CardGroup cols={2}>
+  <Card title="Text Size Control" icon="text-size">
+    Adjustable font size from 80% to 150% in 10% increments
+  </Card>
+  
+  <Card title="High Contrast Mode" icon="circle-half-stroke">
+    Toggle high contrast theme for better visibility
+  </Card>
+  
+  <Card title="Read Aloud" icon="volume-high">
+    Text-to-speech functionality for selected content
+  </Card>
+  
+  <Card title="Accessible Font" icon="font">
+    Toggle to a more readable font style
+  </Card>
+  
+  <Card title="Large Cursor" icon="mouse-pointer">
+    Increase cursor size for better visibility
+  </Card>
+  
+  <Card title="Persistent Settings" icon="floppy-disk">
+    All settings are saved to localStorage
+  </Card>
+</CardGroup>
+
+## Settings Interface
+
+```typescript
+interface AccessibilitySettings {
+  fontSize: number;        // 80-150, default: 100
+  highContrast: boolean;   // default: false
+  readAloud: boolean;      // default: false
+  accessibleFont: boolean; // default: false
+  largeCursor: boolean;    // default: false
+}
+```
+
+## Default Settings
+
+```typescript
+const DEFAULT_SETTINGS: AccessibilitySettings = {
+  fontSize: 100,
+  highContrast: false,
+  readAloud: false,
+  accessibleFont: false,
+  largeCursor: false,
+};
+```
+
+## Feature Details
+
+### Font Size Adjustment
+
+<Card title="Font Size Control" icon="text-size">
+  **Range:** 80% - 150%
+  
+  **Increment:** 10%
+  
+  **Implementation:** Modifies `document.documentElement.style.fontSize`
+  
+  **Feedback:** Toast notification showing current percentage
+</Card>
+
+**Functions:**
+- `increaseFontSize()` - Increases font size by 10% (max 150%)
+- `decreaseFontSize()` - Decreases font size by 10% (min 80%)
+
+### High Contrast Mode
+
+<Card title="High Contrast Toggle" icon="circle-half-stroke">
+  **CSS Class:** `.high-contrast`
+  
+  **Scope:** Applied to `document.body`
+  
+  **Feedback:** Toast showing "Alto contraste activado" or "Modo normal activado"
+</Card>
+
+This feature adds a `high-contrast` class to the body element, which should be styled in your CSS to provide better contrast ratios.
+
+### Read Aloud Feature
+
+<Card title="Text-to-Speech" icon="volume-high">
+  **Technology:** Web Speech API (`SpeechSynthesisUtterance`)
+  
+  **Language:** Spanish (es-ES)
+  
+  **Speech Rate:** 0.9 (slightly slower for clarity)
+  
+  **Trigger:** Text selection via mouseup event
+</Card>
+
+**Behavior:**
+- When enabled, automatically reads selected text aloud
+- Shows "(leyendo...)" status indicator while speaking
+- Cancels previous speech when new text is selected
+- Automatically cleans up on component unmount
+
+### Accessible Font
+
+<Card title="Font Toggle" icon="font">
+  **CSS Class:** `.accessible-font`
+  
+  **Scope:** Applied to `document.body`
+  
+  **Purpose:** Switches to a more readable font (e.g., OpenDyslexic, Comic Sans)
+</Card>
+
+### Large Cursor
+
+<Card title="Cursor Size" icon="mouse-pointer">
+  **CSS Class:** `.large-cursor`
+  
+  **Scope:** Applied to `document.body`
+  
+  **Implementation:** CSS should define larger cursor styles
+</Card>
+
+## Persistence
+
+All settings are automatically saved to `localStorage` under the key `accessibility-settings`:
+
+```typescript
+// Settings are saved on every update
+localStorage.setItem("accessibility-settings", JSON.stringify(newSettings));
+
+// Settings are loaded on component mount
+const saved = localStorage.getItem("accessibility-settings");
+if (saved) {
+  const parsed = JSON.parse(saved);
+  setSettings(parsed);
+  applySettings(parsed);
+}
+```
+
+## UI Design
+
+### Floating Button
+
+<Card title="Positioning" icon="location-dot">
+  **Position:** Fixed bottom-right corner (`bottom-6 right-6`)
+  
+  **Z-Index:** 50 (appears above most content)
+  
+  **Style:** Large circular button (14x14) with Settings icon
+  
+  **Effects:** Shadow with hover glow effect
+</Card>
+
+### Dropdown Menu
+
+<Card title="Menu Layout" icon="bars">
+  **Width:** 64 (256px)
+  
+  **Alignment:** Right-aligned to button
+  
+  **Components:** Uses shadcn/ui DropdownMenu primitives
+</Card>
+
+**Menu Structure:**
+1. Label: "Opciones de Accesibilidad"
+2. Font size controls (increase/decrease with current %)
+3. Separator
+4. Toggle options (contrast, read aloud, font, cursor)
+
+## Usage Example
+
+### Basic Integration
+
+From `~/workspace/source/src/App.tsx:32`:
+
+```typescript
+import { AccessibilityMenu } from "./components/AccessibilityMenu";
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          {/* Other routes */}
+        </Routes>
+        <AccessibilityMenu />
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
+```
+
+<Tip>
+  Place the `AccessibilityMenu` component outside of your route definitions but inside the Router to ensure it appears on all pages.
+</Tip>
+
+### CSS Requirements
+
+You must define CSS styles for the following classes in your global stylesheet:
+
+```css
+/* High Contrast Mode */
+body.high-contrast {
+  --background: #000;
+  --foreground: #fff;
+  /* Adjust other color variables for high contrast */
+}
+
+/* Accessible Font */
+body.accessible-font {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif;
+}
+
+/* Large Cursor */
+body.large-cursor,
+body.large-cursor * {
+  cursor: url('large-cursor.cur'), auto !important;
+  /* Or use CSS to scale cursor */
+}
+```
+
+## Accessibility Features
+
+<CardGroup cols={2}>
+  <Card title="ARIA Label">
+    Button includes `aria-label="Menú de accesibilidad"`
+  </Card>
+  
+  <Card title="Keyboard Navigation">
+    Full keyboard support via DropdownMenu primitives
+  </Card>
+  
+  <Card title="Visual Feedback">
+    Checkmarks (✓) indicate active settings
+  </Card>
+  
+  <Card title="Toast Notifications">
+    Confirmation messages for all setting changes
+  </Card>
+</CardGroup>
+
+## Dependencies
+
+```typescript
+import { useState, useEffect } from "react";
+import { Settings, Plus, Minus, Eye, Volume2, Type, MousePointer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+```
+
+<CardGroup cols={3}>
+  <Card title="React Hooks" icon="react">
+    Uses `useState` and `useEffect` for state management
+  </Card>
+  
+  <Card title="Lucide Icons" icon="icons">
+    Six icons for different accessibility features
+  </Card>
+  
+  <Card title="shadcn/ui" icon="palette">
+    Button and DropdownMenu components
+  </Card>
+  
+  <Card title="Sonner" icon="bell">
+    Toast notifications for user feedback
+  </Card>
+  
+  <Card title="Web Speech API" icon="microphone">
+    Browser's SpeechSynthesis for text-to-speech
+  </Card>
+  
+  <Card title="LocalStorage" icon="database">
+    Browser storage for settings persistence
+  </Card>
+</CardGroup>
+
+## Browser Compatibility
+
+<Warning>
+  The Read Aloud feature requires the Web Speech API, which may not be available in all browsers. Consider providing a fallback message for unsupported browsers.
+</Warning>
+
+**Web Speech API Support:**
+- Chrome/Edge: Full support
+- Firefox: Full support
+- Safari: Partial support
+- Mobile browsers: Varies by platform
+
+## Best Practices
+
+<Tip>
+  Test all accessibility features with actual assistive technologies to ensure they work as expected for your target audience.
+</Tip>
+
+<Check>
+  Implement the required CSS classes (`high-contrast`, `accessible-font`, `large-cursor`) to ensure visual changes are applied correctly.
+</Check>
+
+<Check>
+  Consider adding a "Reset to Defaults" option to help users who accidentally enable incompatible combinations.
+</Check>
+
+## Event Handling
+
+The component uses several event listeners:
+
+1. **mouseup** - Detects text selection for Read Aloud feature
+2. **Component mount** - Loads saved settings from localStorage
+3. **Component unmount** - Cleans up event listeners and stops speech synthesis
+
+## State Management
+
+```typescript
+const [settings, setSettings] = useState<AccessibilitySettings>(DEFAULT_SETTINGS);
+const [isReading, setIsReading] = useState(false);
+```
+
+- `settings` - Current accessibility configuration
+- `isReading` - Indicates if text-to-speech is currently active
+
+## Functions Reference
+
+<CardGroup cols={2}>
+  <Card title="applySettings()">
+    Applies all accessibility settings to the DOM
+  </Card>
+  
+  <Card title="updateSettings()">
+    Updates settings state and saves to localStorage
+  </Card>
+  
+  <Card title="increaseFontSize()">
+    Increases font size by 10% (max 150%)
+  </Card>
+  
+  <Card title="decreaseFontSize()">
+    Decreases font size by 10% (min 80%)
+  </Card>
+  
+  <Card title="toggleHighContrast()">
+    Toggles high contrast mode on/off
+  </Card>
+  
+  <Card title="toggleReadAloud()">
+    Enables/disables text-to-speech
+  </Card>
+  
+  <Card title="speakText()">
+    Speaks the provided text using Web Speech API
+  </Card>
+  
+  <Card title="toggleAccessibleFont()">
+    Toggles accessible font mode
+  </Card>
+  
+  <Card title="toggleLargeCursor()">
+    Toggles large cursor mode
+  </Card>
+</CardGroup>
+
+## Related Components
+
+- [Button Component](/reference/components/ui-library#button) - Used for the floating trigger button
+- [DropdownMenu](/reference/components/ui-library#dropdown-menu) - Menu structure
+- [Toast Notifications](/reference/components/ui-library#sonner) - User feedback

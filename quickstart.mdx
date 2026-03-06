@@ -1,80 +1,441 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart Guide'
+description: 'Get started with DigiForum in minutes - create your account, explore the dashboard, and make your first post'
 ---
 
-## Get started in three steps
+## Welcome to DigiForum
 
-Get your documentation site running locally and make your first customization.
+This guide will walk you through everything you need to start connecting with the community. In just a few minutes, you'll be ready to share your story and engage with others.
 
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+<Steps>
+  <Step title="Create Your Account">
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+### Registration Process
 
-### Step 2: Deploy your changes
+Navigate to the authentication page and select the **"Crear Cuenta"** (Create Account) tab.
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+<Tip>
+You can also click "Crear Cuenta" from the homepage hero section or navigation bar.
+</Tip>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+#### Required Information
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+Fill out the registration form with the following required fields:
 
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+```typescript
+// Required fields for registration
+interface RegistrationData {
+  fullName: string;        // Your complete name
+  email: string;           // Valid email address
+  username: string;        // Unique username
+  password: string;        // Minimum 8 characters
+  confirmPassword: string; // Must match password
+}
+```
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Required Fields" icon="asterisk">
+    - Full Name
+    - Email Address
+    - Username
+    - Password (min 8 characters)
+    - Confirm Password
+  </Card>
+  <Card title="Optional Fields" icon="circle">
+    - Date of Birth
+    - Amputation Type (Arm, Hand, Leg, Foot, Multiple, or Prefer not to say)
+  </Card>
 </CardGroup>
 
+#### Validation Rules
+
+The platform ensures data quality with these validations:
+
+- **Email Format**: Must be valid format (e.g., user@example.com)
+- **Password Length**: Minimum 8 characters
+- **Password Match**: Confirmation must match original
+- **Unique Email**: Email cannot already be registered
+- **Unique Username**: Username must be available
+
+<Warning>
+If validation fails, you'll see a clear error message explaining what needs to be corrected.
+</Warning>
+
+#### Sample Registration Code
+
+Here's how the registration validation works behind the scenes:
+
+```typescript
+// Email validation
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  setError("Por favor ingresa un correo electrónico válido");
+  return;
+}
+
+// Password length validation
+if (password.length < 8) {
+  setError("La contraseña debe tener al menos 8 caracteres");
+  return;
+}
+
+// Password match validation
+if (password !== confirmPassword) {
+  setError("Las contraseñas no coinciden");
+  return;
+}
+```
+
+<Info>
+Once registered, you'll see a success message and be automatically redirected to the login tab after 2 seconds.
+</Info>
+
+  </Step>
+
+  <Step title="Log In to Your Account">
+    
+### Login Process
+
+After creating your account, log in using either your **email or username**.
+
+```typescript
+// Login accepts either email or username
+const user = users.find(
+  u => (u.email === loginEmail || u.username === loginEmail) 
+    && u.password === loginPassword
+);
+```
+
+<CardGroup cols={2}>
+  <Card title="Login with Email" icon="envelope">
+    Enter your email address and password
+  </Card>
+  <Card title="Login with Username" icon="user">
+    Enter your username and password
+  </Card>
+</CardGroup>
+
+#### Remember Me Option
+
+Check the "Recordarme" (Remember Me) checkbox to stay logged in across browser sessions.
+
+<Tip>
+If you forget your password, contact the administrator for recovery assistance.
+</Tip>
+
+  </Step>
+
+  <Step title="Explore the Dashboard">
+    
+### Dashboard Overview
+
+After logging in, you'll arrive at the main dashboard - the heart of DigiForum.
+
+#### Key Dashboard Sections
+
+**1. Search & Filter Bar**
+
+Search for posts by keywords that match:
+- Post titles
+- Content
+- Categories
+- Author names
+
+```typescript
+// Search functionality
+filtered = filtered.filter(post => 
+  post.title.toLowerCase().includes(query) ||
+  post.content.toLowerCase().includes(query) ||
+  post.category.toLowerCase().includes(query) ||
+  post.authorName.toLowerCase().includes(query)
+);
+```
+
+**2. Category Filters**
+
+Click any category button to filter posts:
+
+<CardGroup cols={3}>
+  <Card title="Experiencias personales" icon="user">
+    Personal stories and milestones
+  </Card>
+  <Card title="Preguntas y respuestas" icon="circle-help">
+    Community Q&A
+  </Card>
+  <Card title="Recursos útiles" icon="book">
+    Helpful resources and tools
+  </Card>
+  <Card title="Apoyo emocional" icon="heart">
+    Emotional support and encouragement
+  </Card>
+  <Card title="Tecnología y prótesis" icon="cpu">
+    Prosthetic tech discussions
+  </Card>
+  <Card title="Otros" icon="ellipsis">
+    Other topics
+  </Card>
+</CardGroup>
+
+**3. Forum Rules**
+
+Click the "Normas del Foro" button to review community guidelines including:
+- Respect and courtesy requirements
+- Content appropriateness standards
+- Privacy protection guidelines
+- Proper category usage
+- Moderation policies
+
+**4. Posts Feed**
+
+Browse recent community posts, each displaying:
+- Category badge (color-coded)
+- Post title and preview
+- Author name
+- Publication date
+- Like count
+- Save/bookmark option
+- "Leer más" (Read More) button
+
+```typescript
+// Post interaction buttons
+<Button
+  onClick={() => {
+    togglePostLike(post.id, currentUser?.id);
+    loadPosts();
+  }}
+>
+  {hasUserLikedPost(post.id, currentUser?.id) ? "❤️" : "🤍"}
+  {getPostLikesCount(post.id)}
+</Button>
+```
+
+  </Step>
+
+  <Step title="Create Your First Post">
+    
+### Creating a Post
+
+Share your story, ask a question, or contribute resources to the community.
+
+#### Step-by-Step
+
+**1. Open the Creation Form**
+
+Find the "Crear Nueva Publicación" (Create New Post) card and click **"Comenzar"** (Begin).
+
+**2. Fill Out Post Details**
+
+<CardGroup cols={3}>
+  <Card title="Title" icon="heading">
+    Write a descriptive title for your post
+  </Card>
+  <Card title="Category" icon="tags">
+    Select the most appropriate category from the dropdown
+  </Card>
+  <Card title="Content" icon="file-text">
+    Share your full story, question, or resource
+  </Card>
+</CardGroup>
+
+**3. Post Structure**
+
+```typescript
+interface Post {
+  id: string;              // Auto-generated
+  title: string;           // Your title (required)
+  category: string;        // Selected category (required)
+  content: string;         // Your message (required)
+  authorId: string;        // Your user ID (auto)
+  authorName: string;      // Your display name (auto)
+  createdAt: string;       // Timestamp (auto)
+}
+```
+
+**4. Submit Your Post**
+
+Click **"Publicar"** (Publish) to share with the community. Your post will appear immediately at the top of the feed.
+
+<Info>
+All fields (title, category, content) are required. You'll see an error if any are missing.
+</Info>
+
+#### Example Post Creation
+
+```typescript
+const newPost: Post = {
+  id: Date.now().toString(),
+  title: "Mi primer día con prótesis",
+  category: "Experiencias personales",
+  content: "Hoy fue un día increíble. Después de meses de espera...",
+  authorId: currentUser.id,
+  authorName: currentUser.fullName,
+  createdAt: new Date().toISOString(),
+};
+
+addPost(newPost);
+```
+
+<Tip>
+You can cancel at any time by clicking the "Cancelar" button, which clears the form.
+</Tip>
+
+  </Step>
+
+  <Step title="Use Accessibility Features">
+    
+### Accessibility Menu
+
+DigiForum includes powerful accessibility features to ensure everyone can use the platform comfortably.
+
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+Find the floating accessibility button (gear icon) in the bottom-right corner of every page.
 </Note>
+
+#### Available Features
+
+**1. Text Size Adjustment**
+
+Increase or decrease font size in 10% increments:
+- **Range**: 80% to 150%
+- **Default**: 100%
+
+```typescript
+// Font size control
+const increaseFontSize = () => {
+  const newSize = Math.min(settings.fontSize + 10, 150);
+  updateSettings({ fontSize: newSize });
+};
+
+const decreaseFontSize = () => {
+  const newSize = Math.max(settings.fontSize - 10, 80);
+  updateSettings({ fontSize: newSize });
+};
+```
+
+**2. High Contrast Mode**
+
+Toggle high contrast display for improved visual clarity:
+
+```typescript
+if (newSettings.highContrast) {
+  document.body.classList.add("high-contrast");
+} else {
+  document.body.classList.remove("high-contrast");
+}
+```
+
+**3. Text-to-Speech**
+
+Enable "Lectura en voz alta" (Read Aloud) to hear text spoken:
+- Select any text on the page
+- The platform will read it aloud in Spanish
+- Adjustable speech rate (0.9x speed)
+
+```typescript
+const speakText = (text: string) => {
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "es-ES";
+  utterance.rate = 0.9;
+  window.speechSynthesis.speak(utterance);
+};
+```
+
+**4. Accessible Font**
+
+Switch to a dyslexia-friendly, easier-to-read font:
+
+```typescript
+if (newSettings.accessibleFont) {
+  document.body.classList.add("accessible-font");
+}
+```
+
+**5. Large Cursor**
+
+Enable an enlarged cursor for easier tracking:
+
+```typescript
+if (newSettings.largeCursor) {
+  document.body.classList.add("large-cursor");
+}
+```
+
+<CardGroup cols={2}>
+  <Card title="Settings Persistence" icon="save">
+    All accessibility settings are automatically saved to localStorage and persist across sessions
+  </Card>
+  <Card title="Toast Notifications" icon="bell">
+    Receive confirmation toasts when toggling any accessibility feature
+  </Card>
+</CardGroup>
+
+#### Settings Storage
+
+```typescript
+interface AccessibilitySettings {
+  fontSize: number;          // 80-150
+  highContrast: boolean;     // true/false
+  readAloud: boolean;        // true/false
+  accessibleFont: boolean;   // true/false
+  largeCursor: boolean;      // true/false
+}
+
+// Settings are stored and loaded automatically
+localStorage.setItem("accessibility-settings", JSON.stringify(settings));
+```
+
+  </Step>
+</Steps>
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Manage Your Profile" icon="user" href="/guides/managing-profile">
+    Edit your profile, view your posts, and manage saved content
+  </Card>
+  <Card title="Engage with Posts" icon="comments">
+    Like, save, and comment on community posts
+  </Card>
+  <Card title="Join Conversations" icon="message-circle">
+    Reply to posts that resonate with you and provide support
+  </Card>
+  <Card title="Share Resources" icon="share">
+    Help others by sharing useful tools, websites, and information
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+If you encounter any issues or have questions:
+
+<Info>
+- Review the **Normas del Foro** (Forum Rules) in the dashboard
+- Contact the administrator through your profile
+- Check your accessibility settings if content is difficult to read
+</Info>
+
+<Card title="Community Guidelines" icon="book-open">
+  Remember to always treat community members with respect, share appropriate content, and protect everyone's privacy.
+</Card>
+
+## Pro Tips
+
+<Tip>
+**Search Effectively**: Use specific keywords to find relevant posts. The search covers titles, content, categories, and author names.
+</Tip>
+
+<Tip>
+**Save Important Posts**: Use the bookmark feature (📌 Guardar) to save posts you want to reference later. Access them from your profile.
+</Tip>
+
+<Tip>
+**Adjust Accessibility First**: Before browsing, configure your accessibility settings for the most comfortable experience.
+</Tip>
+
+<Tip>
+**Choose the Right Category**: Selecting the correct category helps others find your post when they need specific information.
+</Tip>
+
+---
+
+Welcome to the DigiForum community! We're excited to have you here. 🎉

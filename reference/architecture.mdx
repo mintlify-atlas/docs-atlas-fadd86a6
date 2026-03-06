@@ -1,0 +1,214 @@
+---
+title: Application Architecture
+description: Overview of DigiForum's technical architecture, tech stack, and design patterns
+---
+
+## Overview
+
+DigiForum is built as a single-page application (SPA) using modern web technologies. The application follows a client-side architecture with local data persistence, making it lightweight and fast while ensuring accessibility for users with physical disabilities.
+
+## Tech Stack
+
+### Core Technologies
+
+<CardGroup cols={2}>
+  <Card title="React 18.3.1" icon="react" iconType="duotone">
+    Modern UI library with hooks for component state management
+  </Card>
+  <Card title="TypeScript 5.8.3" icon="code" iconType="duotone">
+    Type-safe development with full IDE support
+  </Card>
+  <Card title="Vite 5.4.19" icon="bolt" iconType="duotone">
+    Fast build tool with HMR for optimal development experience
+  </Card>
+  <Card title="React Router 6.30.1" icon="route" iconType="duotone">
+    Client-side routing with protected routes
+  </Card>
+</CardGroup>
+
+### UI Framework
+
+- **Radix UI Primitives**: Accessible, unstyled component primitives
+- **Tailwind CSS**: Utility-first CSS framework for styling
+- **shadcn/ui**: Pre-built accessible components built on Radix UI
+- **Lucide React**: Icon library for consistent visual elements
+
+<Note>
+All UI components are built with WCAG 2.1 Level AA accessibility standards in mind, including proper ARIA labels, keyboard navigation, and screen reader support.
+</Note>
+
+## Application Entry Point
+
+The application initializes through `main.tsx`:
+
+```typescript title="src/main.tsx"
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
+
+createRoot(document.getElementById("root")!).render(<App />);
+```
+
+## Routing Architecture
+
+The application uses React Router v6 with a declarative routing structure defined in `App.tsx`:
+
+```typescript title="src/App.tsx"
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/post/:id" element={<ProtectedRoute><PostDetail /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <AccessibilityMenu />
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
+```
+
+### Route Types
+
+| Route | Type | Description |
+|-------|------|-------------|
+| `/` | Public | Landing page |
+| `/auth` | Public | Authentication (login/register) |
+| `/dashboard` | Protected | Main feed of community posts |
+| `/post/:id` | Protected | Individual post detail view |
+| `/profile` | Protected | User profile and saved posts |
+| `*` | Public | 404 Not Found page |
+
+## Protected Routes
+
+Authentication is handled through a `ProtectedRoute` wrapper component that checks for user session:
+
+```typescript title="src/components/ProtectedRoute.tsx"
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const currentUser = localStorage.getItem("currentUser");
+    setIsAuthenticated(!!currentUser);
+  }, []);
+
+  if (isAuthenticated === null) {
+    return <LoadingState />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth?mode=login" replace />;
+  }
+
+  return <>{children}</>;
+};
+```
+
+<Warning>
+The current implementation uses localStorage for session management. This is suitable for a client-side demo but should be replaced with secure server-side session management for production.
+</Warning>
+
+## State Management
+
+### React Query
+
+DigiForum uses TanStack Query (React Query) for server state management:
+
+```typescript
+const queryClient = new QueryClient();
+```
+
+Benefits:
+- Automatic caching and background refetching
+- Optimistic updates for better UX
+- Built-in loading and error states
+
+### Local State
+
+- **Component State**: React hooks (`useState`, `useEffect`) for local UI state
+- **Context API**: For sharing global state like accessibility preferences
+- **LocalStorage**: For data persistence (see [Storage](/reference/storage))
+
+## Build Configuration
+
+Vite configuration with path aliases and optimizations:
+
+```typescript title="vite.config.ts"
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+
+export default defineConfig(({ mode }) => ({
+  server: {
+    host: "::",
+    port: 8080,
+  },
+  plugins: [
+    react(),
+    mode === "development" && componentTagger()
+  ].filter(Boolean),
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+}));
+```
+
+### Key Features
+
+- **SWC Plugin**: Fast React refresh using SWC instead of Babel
+- **Path Aliases**: `@/` maps to `src/` for cleaner imports
+- **Component Tagger**: Development tool for component inspection
+
+## Accessibility Features
+
+The application includes a dedicated `AccessibilityMenu` component that provides:
+
+- Text size adjustment
+- High contrast mode
+- Keyboard navigation helpers
+- Screen reader optimizations
+
+See the [Accessibility Guide](/essentials/accessibility) for implementation details.
+
+## Project Structure
+
+```
+src/
+├── components/       # Reusable React components
+│   ├── ui/          # shadcn/ui components
+│   ├── ProtectedRoute.tsx
+│   └── AccessibilityMenu.tsx
+├── pages/           # Route-level page components
+│   ├── Home.tsx
+│   ├── Auth.tsx
+│   ├── Dashboard.tsx
+│   ├── PostDetail.tsx
+│   └── Profile.tsx
+├── lib/             # Utility functions and storage
+│   └── storage.ts   # LocalStorage abstraction
+├── App.tsx          # Root component with routing
+├── main.tsx         # Application entry point
+└── index.css        # Global styles
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Data Models" icon="database" href="/reference/data-models">
+    Explore TypeScript interfaces for User, Post, Comment, and more
+  </Card>
+  <Card title="Storage Layer" icon="hard-drive" href="/reference/storage">
+    Learn about LocalStorage implementation and data functions
+  </Card>
+</CardGroup>

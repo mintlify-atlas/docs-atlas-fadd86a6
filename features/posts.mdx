@@ -1,0 +1,502 @@
+---
+title: Posts
+description: Creating, categorizing, and viewing posts in the DigiForum community platform
+icon: newspaper
+---
+
+## Overview
+
+Posts are the core content type in DigiForum, allowing community members to share personal experiences, ask questions, share resources, and provide emotional support. The platform includes comprehensive post creation, categorization, filtering, and search functionality.
+
+## Post Data Model
+
+The Post interface defines the structure of forum posts:
+
+```typescript storage.ts:14-22
+export interface Post {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+}
+```
+
+### Field Descriptions
+
+<ParamField path="id" type="string" required>
+  Unique identifier for the post (timestamp-based)
+</ParamField>
+
+<ParamField path="title" type="string" required>
+  Post title - should be descriptive and concise
+</ParamField>
+
+<ParamField path="category" type="string" required>
+  Category classification for the post (see Categories section)
+</ParamField>
+
+<ParamField path="content" type="string" required>
+  Full post content - supports multi-line text with whitespace preservation
+</ParamField>
+
+<ParamField path="authorId" type="string" required>
+  User ID of the post author
+</ParamField>
+
+<ParamField path="authorName" type="string" required>
+  Display name of the post author
+</ParamField>
+
+<ParamField path="createdAt" type="string" required>
+  ISO timestamp of when the post was created
+</ParamField>
+
+## Post Categories
+
+DigiForum organizes posts into six distinct categories, each with its own color scheme:
+
+<CardGroup cols={2}>
+  <Card title="Experiencias personales" icon="heart" color="#a855f7">
+    Personal stories and experiences with disabilities, rehabilitation, and daily life
+  </Card>
+  
+  <Card title="Preguntas y respuestas" icon="circle-question" color="#3b82f6">
+    Questions seeking advice, recommendations, or information from the community
+  </Card>
+  
+  <Card title="Recursos útiles" icon="book" color="#22c55e">
+    Sharing helpful resources, tools, apps, websites, or services
+  </Card>
+  
+  <Card title="Apoyo emocional" icon="hands-holding-heart" color="#ec4899">
+    Emotional support, encouragement, and mental health discussions
+  </Card>
+  
+  <Card title="Tecnología y prótesis" icon="microchip" color="#f97316">
+    Discussions about prosthetics technology, innovations, and experiences
+  </Card>
+  
+  <Card title="Otros" icon="ellipsis" color="#6b7280">
+    Any other topics relevant to the community
+  </Card>
+</CardGroup>
+
+### Category Colors
+
+The platform uses consistent color coding for categories:
+
+```typescript Dashboard.tsx:112-122
+const getCategoryColor = (category: string) => {
+  const colors: Record<string, string> = {
+    "Experiencias personales": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+    "Preguntas y respuestas": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    "Recursos útiles": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+    "Apoyo emocional": "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300",
+    "Tecnología y prótesis": "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+    "Otros": "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
+  };
+  return colors[category] || colors["Otros"];
+};
+```
+
+## Creating Posts
+
+### Post Creation Form
+
+The post creation interface is embedded in the Dashboard with a collapsible form:
+
+```typescript Dashboard.tsx:76-110
+const handleCreatePost = (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!title.trim() || !category || !content.trim()) {
+    toast.error("Por favor completa todos los campos");
+    return;
+  }
+
+  if (!currentUser) {
+    toast.error("Debes iniciar sesión para crear publicaciones");
+    return;
+  }
+
+  const newPost: Post = {
+    id: Date.now().toString(),
+    title: title.trim(),
+    category,
+    content: content.trim(),
+    authorId: currentUser.id,
+    authorName: currentUser.fullName,
+    createdAt: new Date().toISOString(),
+  };
+
+  addPost(newPost);
+  toast.success("Publicación creada exitosamente");
+  
+  // Reset form
+  setTitle("");
+  setCategory("");
+  setContent("");
+  setIsCreating(false);
+  
+  // Reload posts
+  loadPosts();
+};
+```
+
+### Form Fields
+
+<Steps>
+  <Step title="Title">
+    A descriptive title for the post (required, trimmed automatically)
+    
+    ```tsx
+    <Input
+      id="post-title"
+      type="text"
+      placeholder="Escribe un título descriptivo"
+      value={title}
+      onChange={(e) => setTitle(e.target.value)}
+      required
+    />
+    ```
+  </Step>
+  
+  <Step title="Category">
+    Select one of the six predefined categories (required)
+    
+    ```tsx
+    <Select value={category} onValueChange={setCategory} required>
+      <SelectTrigger id="post-category">
+        <SelectValue placeholder="Selecciona una categoría" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="Experiencias personales">Experiencias personales</SelectItem>
+        <SelectItem value="Preguntas y respuestas">Preguntas y respuestas</SelectItem>
+        <SelectItem value="Recursos útiles">Recursos útiles</SelectItem>
+        <SelectItem value="Apoyo emocional">Apoyo emocional</SelectItem>
+        <SelectItem value="Tecnología y prótesis">Tecnología y prótesis</SelectItem>
+        <SelectItem value="Otros">Otros</SelectItem>
+      </SelectContent>
+    </Select>
+    ```
+  </Step>
+  
+  <Step title="Content">
+    The main content of the post - supports multi-line text (required, 6 rows)
+    
+    ```tsx
+    <Textarea
+      id="post-content"
+      placeholder="Comparte tu historia, pregunta o recurso..."
+      value={content}
+      onChange={(e) => setContent(e.target.value)}
+      required
+      rows={6}
+      className="resize-none"
+    />
+    ```
+  </Step>
+</Steps>
+
+### Validation Rules
+
+<AccordionGroup>
+  <Accordion title="Title Validation">
+    - Cannot be empty
+    - Automatically trimmed of whitespace
+    - No maximum length enforced
+  </Accordion>
+  
+  <Accordion title="Category Validation">
+    - Must be one of the six predefined categories
+    - Required field
+    - Enforced through dropdown selection
+  </Accordion>
+  
+  <Accordion title="Content Validation">
+    - Cannot be empty
+    - Automatically trimmed of whitespace
+    - Preserves line breaks and formatting
+    - No maximum length enforced
+  </Accordion>
+  
+  <Accordion title="Authentication Check">
+    - User must be logged in
+    - Author ID and name automatically attached from current user
+  </Accordion>
+</AccordionGroup>
+
+## Viewing Posts
+
+### Post List View
+
+Posts are displayed in reverse chronological order (newest first) on the Dashboard:
+
+```typescript Dashboard.tsx:400-476
+<div className="space-y-6">
+  {filteredPosts.map((post) => (
+    <Card key={post.id} className="shadow-soft border-none hover:shadow-medium transition-shadow">
+      <CardHeader>
+        <div className="flex items-center gap-2 mb-2">
+          <Badge className={getCategoryColor(post.category)}>
+            {post.category}
+          </Badge>
+        </div>
+        <CardTitle className="text-xl mb-2">
+          <h3>{post.title}</h3>
+        </CardTitle>
+        <CardDescription className="flex items-center gap-4 text-sm">
+          <span>Por {post.authorName}</span>
+          <span className="flex items-center gap-1">
+            <Calendar className="h-4 w-4" />
+            {new Date(post.createdAt).toLocaleDateString("es-ES", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </span>
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        <p className="text-muted-foreground line-clamp-3">
+          {post.content}
+        </p>
+      </CardContent>
+
+      <CardFooter className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {/* Like and Save buttons */}
+        </div>
+        <Link to={`/post/${post.id}`}>
+          <Button variant="outline" className="w-full group">
+            Leer más
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Link>
+      </CardFooter>
+    </Card>
+  ))}
+</div>
+```
+
+### Post Detail View
+
+Full post content is displayed on the PostDetail page:
+
+```typescript PostDetail.tsx:118-146
+<Card className="mb-6 sm:mb-8 shadow-elevated border-none">
+  <CardHeader>
+    <Badge className={getCategoryColor(post.category)}>
+      {post.category}
+    </Badge>
+    <CardTitle className="mt-3 sm:mt-4 text-2xl sm:text-3xl">{post.title}</CardTitle>
+    <CardDescription className="flex flex-wrap items-center gap-2">
+      <span>Por <strong>{post.authorName}</strong></span>
+      <span>·</span>
+      <span className="flex items-center gap-1">
+        <Calendar className="h-4 w-4" />
+        {new Date(post.createdAt).toLocaleDateString('es-ES', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}
+      </span>
+    </CardDescription>
+  </CardHeader>
+  <CardContent>
+    <div className="prose prose-sm sm:prose-base lg:prose-lg max-w-none dark:prose-invert">
+      <p className="whitespace-pre-wrap text-foreground leading-relaxed">
+        {post.content}
+      </p>
+    </div>
+  </CardContent>
+</Card>
+```
+
+<Note>
+  The `whitespace-pre-wrap` class preserves line breaks and formatting from the original post content.
+</Note>
+
+## Search and Filtering
+
+### Search Functionality
+
+Users can search posts by title, content, category, or author name:
+
+```typescript Dashboard.tsx:47-67
+useEffect(() => {
+  let filtered = posts;
+
+  // Filter by category
+  if (selectedCategory !== "all") {
+    filtered = filtered.filter(post => post.category === selectedCategory);
+  }
+
+  // Filter by search query
+  if (searchQuery.trim() !== "") {
+    const query = searchQuery.toLowerCase();
+    filtered = filtered.filter(post => 
+      post.title.toLowerCase().includes(query) ||
+      post.content.toLowerCase().includes(query) ||
+      post.category.toLowerCase().includes(query) ||
+      post.authorName.toLowerCase().includes(query)
+    );
+  }
+
+  setFilteredPosts(filtered);
+}, [searchQuery, selectedCategory, posts]);
+```
+
+### Category Filtering
+
+Users can filter posts by category using buttons:
+
+```tsx Dashboard.tsx:218-284
+<div className="flex flex-wrap gap-2">
+  <Button
+    variant={selectedCategory === "all" ? "default" : "outline"}
+    size="sm"
+    onClick={() => setSelectedCategory("all")}
+  >
+    Todas
+  </Button>
+  <Button
+    variant={selectedCategory === "Experiencias personales" ? "default" : "outline"}
+    size="sm"
+    onClick={() => setSelectedCategory("Experiencias personales")}
+    className="border-purple-200 text-purple-700 hover:bg-purple-50"
+  >
+    Experiencias personales
+  </Button>
+  {/* Other category buttons... */}
+</div>
+```
+
+<Tip>
+  Search and category filtering work together - you can filter by category and then search within those results.
+</Tip>
+
+## Storage Functions
+
+### Post Management API
+
+<CodeGroup>
+
+```typescript getPosts()
+export const getPosts = (): Post[] => {
+  const posts = localStorage.getItem("posts");
+  return posts ? JSON.parse(posts) : [];
+};
+```
+
+```typescript addPost()
+export const addPost = (post: Post) => {
+  const posts = getPosts();
+  posts.unshift(post); // Add to beginning for reverse chronological order
+  localStorage.setItem("posts", JSON.stringify(posts));
+};
+```
+
+```typescript getPostById()
+export const getPostById = (id: string): Post | null => {
+  const posts = getPosts();
+  return posts.find(p => p.id === id) || null;
+};
+```
+
+```typescript getPostsByAuthor()
+export const getPostsByAuthor = (authorId: string): Post[] => {
+  const posts = getPosts();
+  return posts.filter(p => p.authorId === authorId);
+};
+```
+
+</CodeGroup>
+
+## Forum Rules
+
+DigiForum includes a comprehensive set of forum rules accessible from the Dashboard:
+
+<AccordionGroup>
+  <Accordion title="1. Respeto y cortesía">
+    Trata a todos los miembros con respeto. No se tolerarán insultos, acoso, discriminación o cualquier forma de comportamiento ofensivo.
+  </Accordion>
+  
+  <Accordion title="2. Contenido apropiado">
+    Publica contenido relevante y apropiado. No compartas material ofensivo, ilegal, spam o publicidad no autorizada.
+  </Accordion>
+  
+  <Accordion title="3. Categorías correctas">
+    Asegúrate de publicar en la categoría correcta para facilitar la navegación y búsqueda de información.
+  </Accordion>
+  
+  <Accordion title="4. Privacidad">
+    No compartas información personal tuya o de otros sin consentimiento. Respeta la privacidad de todos los miembros.
+  </Accordion>
+  
+  <Accordion title="5. Propiedad intelectual">
+    Respeta los derechos de autor. Si compartes contenido de terceros, asegúrate de dar el crédito apropiado.
+  </Accordion>
+  
+  <Accordion title="6. Uso del lenguaje">
+    Escribe de forma clara y comprensible. Evita el uso excesivo de mayúsculas, que se considera gritar.
+  </Accordion>
+  
+  <Accordion title="7. Moderación">
+    Los moderadores tienen la autoridad para editar, mover o eliminar contenido que viole estas normas.
+  </Accordion>
+</AccordionGroup>
+
+## Sample Data
+
+The platform includes sample posts for demonstration:
+
+```typescript storage.ts:84-131
+const samplePosts: Post[] = [
+  {
+    id: "1",
+    title: "Mi primer día con prótesis",
+    category: "Experiencias personales",
+    content: "Hoy fue un día increíble. Después de meses de espera...",
+    authorId: "1",
+    authorName: "María García",
+    createdAt: "2024-11-01T10:30:00Z",
+  },
+  {
+    id: "2",
+    title: "¿Recomendaciones de fisioterapeutas especializados?",
+    category: "Preguntas y respuestas",
+    content: "Hola a todos. Estoy buscando fisioterapeutas...",
+    authorId: "2",
+    authorName: "Carlos Rodríguez",
+    createdAt: "2024-11-02T15:45:00Z",
+  },
+  // More sample posts...
+];
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Community Features" icon="users" href="/features/community">
+    Learn about likes, comments, and saving posts
+  </Card>
+  
+  <Card title="Authentication" icon="shield-check" href="/features/authentication">
+    Understand user authentication and profiles
+  </Card>
+  
+  <Card title="Accessibility" icon="universal-access" href="/features/accessibility">
+    Explore accessibility features
+  </Card>
+  
+  <Card title="Storage API" icon="code" href="/reference/storage">
+    View complete storage API documentation
+  </Card>
+</CardGroup>

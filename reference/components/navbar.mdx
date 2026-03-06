@@ -1,0 +1,242 @@
+---
+title: 'Navbar Component'
+description: 'Main navigation component with authentication state management'
+---
+
+## Overview
+
+The `Navbar` component provides the main navigation bar for DigiForum. It adapts its display based on the user's authentication state, showing different navigation options for authenticated and non-authenticated users.
+
+## Location
+
+```
+~/workspace/source/src/components/Navbar.tsx
+```
+
+## Props Interface
+
+```typescript
+interface NavbarProps {
+  isAuthenticated: boolean;
+  onLogout?: () => void;
+}
+```
+
+<Card title="isAuthenticated" icon="user">
+  **Type:** `boolean`
+  
+  **Required:** Yes
+  
+  **Description:** Determines whether the user is currently authenticated. When `true`, shows authenticated user navigation options (Forum, Profile, Logout). When `false`, shows login and registration options.
+</Card>
+
+<Card title="onLogout" icon="arrow-right-from-bracket">
+  **Type:** `() => void`
+  
+  **Required:** No
+  
+  **Description:** Optional callback function triggered when the user clicks the logout button. The component will navigate to the home page ("/") after calling this function.
+</Card>
+
+## Features
+
+### Sticky Navigation
+
+The navbar uses sticky positioning (`sticky top-0 z-50`) to remain visible at the top of the viewport while scrolling.
+
+### Responsive Design
+
+The navbar adapts to different screen sizes:
+- On small screens (`sm`), icon-only buttons are displayed
+- On larger screens, buttons show both icons and text labels
+
+### Accessibility Features
+
+<CardGroup cols={2}>
+  <Card title="ARIA Labels">
+    All navigation elements include appropriate `aria-label` attributes for screen readers.
+  </Card>
+  
+  <Card title="Role Navigation">
+    The nav element uses `role="navigation"` with an `aria-label` for main navigation identification.
+  </Card>
+  
+  <Card title="Icon Hiding">
+    Decorative icons are marked with `aria-hidden="true"` to prevent screen reader announcement.
+  </Card>
+  
+  <Card title="Semantic HTML">
+    Uses semantic `<nav>` element for proper document structure.
+  </Card>
+</CardGroup>
+
+## Navigation Options
+
+### Authenticated State
+
+When `isAuthenticated` is `true`, the following options are displayed:
+
+<CardGroup cols={3}>
+  <Card title="Foro" icon="messages">
+    Links to `/dashboard`
+    
+    Displays the forum/dashboard view with MessageSquare icon
+  </Card>
+  
+  <Card title="Mi Perfil" icon="user">
+    Links to `/profile`
+    
+    Shows user profile page with User icon
+  </Card>
+  
+  <Card title="Cerrar Sesión" icon="arrow-right-from-bracket">
+    Triggers logout handler
+    
+    Calls `onLogout` callback and navigates to home with LogOut icon
+  </Card>
+</CardGroup>
+
+### Non-Authenticated State
+
+When `isAuthenticated` is `false`:
+
+<CardGroup cols={2}>
+  <Card title="Iniciar Sesión" icon="arrow-right-to-bracket">
+    Links to `/auth?mode=login`
+    
+    Ghost button variant for login
+  </Card>
+  
+  <Card title="Crear Cuenta" icon="user-plus">
+    Links to `/auth?mode=register`
+    
+    Default button variant for registration (primary action)
+  </Card>
+</CardGroup>
+
+## Usage Examples
+
+### Basic Usage
+
+```typescript
+import Navbar from "@/components/Navbar";
+
+function App() {
+  const [isAuth, setIsAuth] = useState(false);
+  
+  return (
+    <Navbar 
+      isAuthenticated={isAuth}
+    />
+  );
+}
+```
+
+### With Logout Handler
+
+```typescript
+import Navbar from "@/components/Navbar";
+import { logout } from "@/lib/storage";
+
+function Dashboard() {
+  const navigate = useNavigate();
+  
+  const handleLogout = () => {
+    logout();
+    toast.success("Sesión cerrada exitosamente");
+    // Navigate is handled automatically by Navbar
+  };
+  
+  return (
+    <div>
+      <Navbar 
+        isAuthenticated={true}
+        onLogout={handleLogout}
+      />
+      {/* Page content */}
+    </div>
+  );
+}
+```
+
+### Real Implementation Example
+
+From `~/workspace/source/src/pages/Dashboard.tsx:126`:
+
+```typescript
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+
+  const handleLogout = () => {
+    logout();
+    setCurrentUser(null);
+    toast.success("Sesión cerrada exitosamente");
+    navigate("/");
+  };
+
+  return (
+    <div className="min-h-screen">
+      <Navbar isAuthenticated={true} onLogout={handleLogout} />
+      <main className="container-custom py-8" role="main">
+        {/* Dashboard content */}
+      </main>
+    </div>
+  );
+};
+```
+
+## Styling
+
+The navbar uses custom Tailwind CSS classes:
+
+- `bg-nav-footer` - Custom background color for navigation
+- `shadow-soft` - Subtle shadow effect
+- `container-custom` - Custom container with responsive padding
+- `transition-smooth` - Smooth transition animations
+
+## Logo
+
+The navbar displays the DigiForum (DIFO) logo, imported from:
+
+```typescript
+import logo from "@/assets/DiFoDo.png";
+```
+
+The logo links to the home page ("/") with hover opacity transition.
+
+## Dependencies
+
+<CardGroup cols={2}>
+  <Card title="React Router" icon="route">
+    Uses `Link` and `useNavigate` for client-side routing
+  </Card>
+  
+  <Card title="UI Components" icon="palette">
+    Imports `Button` from the shadcn/ui library
+  </Card>
+  
+  <Card title="Lucide Icons" icon="icons">
+    Uses `LogOut`, `User`, and `MessageSquare` icons
+  </Card>
+  
+  <Card title="Assets" icon="image">
+    Requires the DigiForum logo image
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Warning>
+  Always provide the `onLogout` callback when `isAuthenticated` is `true` to ensure proper logout functionality and state management.
+</Warning>
+
+<Tip>
+  The navbar automatically handles navigation after logout, but you should still update your authentication state in the `onLogout` callback to ensure UI consistency.
+</Tip>
+
+## Related Components
+
+- [Button Component](/reference/components/ui-library#button) - Used for navigation actions
+- [NavLink Component](/reference/components/ui-library#navlink) - Custom navigation link wrapper
+- [AccessibilityMenu](/reference/components/accessibility-menu) - Complementary accessibility controls

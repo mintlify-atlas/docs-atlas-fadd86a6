@@ -1,0 +1,585 @@
+---
+title: Storage Layer
+description: LocalStorage implementation, CRUD functions, and data persistence in DigiForum
+---
+
+## Overview
+
+DigiForum uses browser LocalStorage as its primary data persistence layer. All data operations are abstracted through functions defined in `/src/lib/storage.ts`, providing a clean API for components to interact with stored data.
+
+<Note>
+This implementation is suitable for a client-side demo or MVP. For production applications, replace LocalStorage with a backend API and database.
+</Note>
+
+## Storage Keys
+
+The following keys are used in LocalStorage:
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `users` | `User[]` | Array of all registered users |
+| `posts` | `Post[]` | Array of all community posts |
+| `comments` | `Comment[]` | Array of all post comments |
+| `postLikes` | `PostLike[]` | Array of post likes |
+| `savedPosts` | `SavedPost[]` | Array of saved posts |
+| `currentUser` | `string` | ID of the currently logged-in user |
+
+---
+
+## Initialization
+
+### initializeStorage()
+
+Initializes LocalStorage with sample data if no data exists. This function should be called when the application starts.
+
+```typescript
+export const initializeStorage = () => {
+  if (!localStorage.getItem("users")) {
+    const sampleUsers: User[] = [/* ... */];
+    localStorage.setItem("users", JSON.stringify(sampleUsers));
+  }
+  
+  if (!localStorage.getItem("posts")) {
+    const samplePosts: Post[] = [/* ... */];
+    localStorage.setItem("posts", JSON.stringify(samplePosts));
+  }
+  
+  if (!localStorage.getItem("comments")) {
+    const sampleComments: Comment[] = [/* ... */];
+    localStorage.setItem("comments", JSON.stringify(sampleComments));
+  }
+  
+  if (!localStorage.getItem("postLikes")) {
+    localStorage.setItem("postLikes", JSON.stringify([]));
+  }
+  
+  if (!localStorage.getItem("savedPosts")) {
+    localStorage.setItem("savedPosts", JSON.stringify([]));
+  }
+};
+```
+
+**Usage:**
+```typescript
+import { initializeStorage } from '@/lib/storage';
+
+// Call once at app startup
+initializeStorage();
+```
+
+<Warning>
+This function creates demo users with plain-text passwords. Remove or secure this before production deployment.
+</Warning>
+
+---
+
+## User Management
+
+### getUsers()
+
+Retrieve all registered users.
+
+```typescript
+export const getUsers = (): User[] => {
+  const users = localStorage.getItem("users");
+  return users ? JSON.parse(users) : [];
+};
+```
+
+**Returns:** Array of `User` objects
+
+---
+
+### addUser()
+
+Register a new user.
+
+```typescript
+export const addUser = (user: User) => {
+  const users = getUsers();
+  users.push(user);
+  localStorage.setItem("users", JSON.stringify(users));
+};
+```
+
+<ParamField path="user" type="User" required>
+  Complete User object with all required fields
+</ParamField>
+
+**Usage:**
+```typescript
+import { addUser } from '@/lib/storage';
+
+const newUser: User = {
+  id: crypto.randomUUID(),
+  email: 'user@example.com',
+  username: 'username',
+  fullName: 'Full Name',
+  password: 'hashed_password',
+  registeredAt: new Date().toISOString()
+};
+
+addUser(newUser);
+```
+
+---
+
+### getCurrentUser()
+
+Get the currently logged-in user.
+
+```typescript
+export const getCurrentUser = (): User | null => {
+  const currentUserId = localStorage.getItem("currentUser");
+  if (!currentUserId) return null;
+  const users = getUsers();
+  return users.find(u => u.id === currentUserId) || null;
+};
+```
+
+**Returns:** `User` object if logged in, `null` otherwise
+
+---
+
+### setCurrentUser()
+
+Set the current user session.
+
+```typescript
+export const setCurrentUser = (userId: string) => {
+  localStorage.setItem("currentUser", userId);
+};
+```
+
+<ParamField path="userId" type="string" required>
+  ID of the user to log in
+</ParamField>
+
+---
+
+### logout()
+
+Clear the current user session.
+
+```typescript
+export const logout = () => {
+  localStorage.removeItem("currentUser");
+};
+```
+
+---
+
+## Post Management
+
+### getPosts()
+
+Retrieve all posts.
+
+```typescript
+export const getPosts = (): Post[] => {
+  const posts = localStorage.getItem("posts");
+  return posts ? JSON.parse(posts) : [];
+};
+```
+
+**Returns:** Array of `Post` objects
+
+---
+
+### addPost()
+
+Create a new post.
+
+```typescript
+export const addPost = (post: Post) => {
+  const posts = getPosts();
+  posts.unshift(post); // Add to beginning of array
+  localStorage.setItem("posts", JSON.stringify(posts));
+};
+```
+
+<ParamField path="post" type="Post" required>
+  Complete Post object with all required fields
+</ParamField>
+
+<Note>
+New posts are added to the beginning of the array using `unshift()`, ensuring they appear first in the feed.
+</Note>
+
+---
+
+### getPostById()
+
+Retrieve a specific post by ID.
+
+```typescript
+export const getPostById = (id: string): Post | null => {
+  const posts = getPosts();
+  return posts.find(p => p.id === id) || null;
+};
+```
+
+<ParamField path="id" type="string" required>
+  Unique post ID
+</ParamField>
+
+**Returns:** `Post` object if found, `null` otherwise
+
+---
+
+### getPostsByAuthor()
+
+Retrieve all posts by a specific author.
+
+```typescript
+export const getPostsByAuthor = (authorId: string): Post[] => {
+  const posts = getPosts();
+  return posts.filter(p => p.authorId === authorId);
+};
+```
+
+<ParamField path="authorId" type="string" required>
+  User ID of the author
+</ParamField>
+
+**Returns:** Array of `Post` objects
+
+---
+
+## Comment Management
+
+### getComments()
+
+Retrieve all comments.
+
+```typescript
+export const getComments = (): Comment[] => {
+  const comments = localStorage.getItem("comments");
+  return comments ? JSON.parse(comments) : [];
+};
+```
+
+---
+
+### getCommentsByPost()
+
+Retrieve all comments for a specific post.
+
+```typescript
+export const getCommentsByPost = (postId: string): Comment[] => {
+  const comments = getComments();
+  return comments.filter(c => c.postId === postId);
+};
+```
+
+<ParamField path="postId" type="string" required>
+  ID of the post
+</ParamField>
+
+---
+
+### addComment()
+
+Add a new comment to a post.
+
+```typescript
+export const addComment = (comment: Comment) => {
+  const comments = getComments();
+  comments.push(comment);
+  localStorage.setItem("comments", JSON.stringify(comments));
+};
+```
+
+<ParamField path="comment" type="Comment" required>
+  Complete Comment object
+</ParamField>
+
+---
+
+## Like Management
+
+### getPostLikes()
+
+Retrieve all post likes.
+
+```typescript
+export const getPostLikes = (): PostLike[] => {
+  const likes = localStorage.getItem("postLikes");
+  return likes ? JSON.parse(likes) : [];
+};
+```
+
+---
+
+### togglePostLike()
+
+Toggle a like on a post (add if not liked, remove if already liked).
+
+```typescript
+export const togglePostLike = (
+  postId: string, 
+  userId: string
+): { liked: boolean; totalLikes: number } => {
+  const likes = getPostLikes();
+  const existingLikeIndex = likes.findIndex(
+    like => like.postId === postId && like.userId === userId
+  );
+
+  if (existingLikeIndex !== -1) {
+    // Remove like
+    likes.splice(existingLikeIndex, 1);
+    localStorage.setItem("postLikes", JSON.stringify(likes));
+    const totalLikes = likes.filter(like => like.postId === postId).length;
+    return { liked: false, totalLikes };
+  } else {
+    // Add like
+    const newLike: PostLike = {
+      id: `like_${Date.now()}_${Math.random()}`,
+      postId,
+      userId,
+      createdAt: new Date().toISOString(),
+    };
+    likes.push(newLike);
+    localStorage.setItem("postLikes", JSON.stringify(likes));
+    const totalLikes = likes.filter(like => like.postId === postId).length;
+    return { liked: true, totalLikes };
+  }
+};
+```
+
+<ParamField path="postId" type="string" required>
+  ID of the post to like/unlike
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  ID of the user performing the action
+</ParamField>
+
+**Returns:** Object with `liked` (boolean) and `totalLikes` (number)
+
+---
+
+### getPostLikesCount()
+
+Get the total number of likes for a post.
+
+```typescript
+export const getPostLikesCount = (postId: string): number => {
+  const likes = getPostLikes();
+  return likes.filter(like => like.postId === postId).length;
+};
+```
+
+<ParamField path="postId" type="string" required>
+  ID of the post
+</ParamField>
+
+---
+
+### hasUserLikedPost()
+
+Check if a user has liked a specific post.
+
+```typescript
+export const hasUserLikedPost = (postId: string, userId: string): boolean => {
+  const likes = getPostLikes();
+  return likes.some(like => like.postId === postId && like.userId === userId);
+};
+```
+
+<ParamField path="postId" type="string" required>
+  ID of the post
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  ID of the user
+</ParamField>
+
+---
+
+## Saved Posts Management
+
+### getSavedPosts()
+
+Retrieve all saved post records.
+
+```typescript
+export const getSavedPosts = (): SavedPost[] => {
+  const saved = localStorage.getItem("savedPosts");
+  return saved ? JSON.parse(saved) : [];
+};
+```
+
+---
+
+### toggleSavedPost()
+
+Toggle save status for a post.
+
+```typescript
+export const toggleSavedPost = (
+  postId: string, 
+  userId: string
+): { saved: boolean } => {
+  const savedPosts = getSavedPosts();
+  const existingSaveIndex = savedPosts.findIndex(
+    save => save.postId === postId && save.userId === userId
+  );
+
+  if (existingSaveIndex !== -1) {
+    // Remove save
+    savedPosts.splice(existingSaveIndex, 1);
+    localStorage.setItem("savedPosts", JSON.stringify(savedPosts));
+    return { saved: false };
+  } else {
+    // Save post
+    const newSave: SavedPost = {
+      id: `save_${Date.now()}_${Math.random()}`,
+      postId,
+      userId,
+      createdAt: new Date().toISOString(),
+    };
+    savedPosts.push(newSave);
+    localStorage.setItem("savedPosts", JSON.stringify(savedPosts));
+    return { saved: true };
+  }
+};
+```
+
+<ParamField path="postId" type="string" required>
+  ID of the post to save/unsave
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  ID of the user performing the action
+</ParamField>
+
+---
+
+### hasUserSavedPost()
+
+Check if a user has saved a specific post.
+
+```typescript
+export const hasUserSavedPost = (postId: string, userId: string): boolean => {
+  const savedPosts = getSavedPosts();
+  return savedPosts.some(save => save.postId === postId && save.userId === userId);
+};
+```
+
+<ParamField path="postId" type="string" required>
+  ID of the post
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  ID of the user
+</ParamField>
+
+---
+
+### getUserSavedPosts()
+
+Get all posts saved by a specific user.
+
+```typescript
+export const getUserSavedPosts = (userId: string): Post[] => {
+  const savedPosts = getSavedPosts();
+  const posts = getPosts();
+  
+  const userSavedPostIds = savedPosts
+    .filter(save => save.userId === userId)
+    .map(save => save.postId);
+  
+  return posts.filter(post => userSavedPostIds.includes(post.id));
+};
+```
+
+<ParamField path="userId" type="string" required>
+  ID of the user
+</ParamField>
+
+**Returns:** Array of `Post` objects that the user has saved
+
+---
+
+## Data Flow Example
+
+Here's how a typical user action flows through the storage layer:
+
+```typescript
+import { 
+  getCurrentUser, 
+  addPost, 
+  getPosts 
+} from '@/lib/storage';
+
+// 1. Get current user
+const currentUser = getCurrentUser();
+
+if (currentUser) {
+  // 2. Create new post
+  const newPost: Post = {
+    id: crypto.randomUUID(),
+    title: 'My Story',
+    category: 'Experiencias personales',
+    content: 'Today I want to share...',
+    authorId: currentUser.id,
+    authorName: currentUser.fullName,
+    createdAt: new Date().toISOString()
+  };
+  
+  // 3. Save to storage
+  addPost(newPost);
+  
+  // 4. Retrieve updated list
+  const allPosts = getPosts();
+  console.log('Total posts:', allPosts.length);
+}
+```
+
+## Performance Considerations
+
+<Warning>
+LocalStorage has limitations:
+- **Size limit**: ~5-10MB depending on browser
+- **Synchronous API**: Blocks the main thread
+- **No indexing**: Linear search for queries
+- **No transactions**: Risk of data corruption
+</Warning>
+
+### Best Practices
+
+1. **Minimize reads/writes**: Cache data in component state or React Query
+2. **Parse once**: Store parsed data in memory rather than re-parsing
+3. **Use indexes**: Consider maintaining separate index structures for frequent queries
+4. **Validate data**: Always check for `null` and parse errors
+
+## Migration to Backend
+
+When moving to a production backend:
+
+1. Replace storage functions with API calls:
+   ```typescript
+   // Before
+   const posts = getPosts();
+   
+   // After
+   const response = await fetch('/api/posts');
+   const posts = await response.json();
+   ```
+
+2. Add error handling for network failures
+3. Implement proper authentication with JWT/sessions
+4. Add pagination for large datasets
+5. Use optimistic updates with React Query
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Data Models" icon="database" href="/reference/data-models">
+    Review TypeScript interfaces used by these functions
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/reference/architecture">
+    See how storage fits into the overall application
+  </Card>
+</CardGroup>

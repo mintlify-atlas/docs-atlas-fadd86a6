@@ -1,0 +1,439 @@
+---
+title: Authentication
+description: User registration, login, session management, and profile management in DigiForum
+icon: shield-check
+---
+
+## Overview
+
+DigiForum implements a complete authentication system that allows users to register, login, manage their sessions, and maintain profile data. The authentication system is built using localStorage for data persistence and React hooks for state management.
+
+## User Data Model
+
+The User interface defines the structure of user data in the application:
+
+```typescript storage.ts:2-12
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  fullName: string;
+  password: string;
+  amputationType?: string;
+  dateOfBirth?: string;
+  profilePhoto?: string;
+  registeredAt: string;
+}
+```
+
+### Field Descriptions
+
+<ParamField path="id" type="string" required>
+  Unique identifier for the user (timestamp-based)
+</ParamField>
+
+<ParamField path="email" type="string" required>
+  User's email address (must be unique, validated with regex)
+</ParamField>
+
+<ParamField path="username" type="string" required>
+  Username for login and display (must be unique)
+</ParamField>
+
+<ParamField path="fullName" type="string" required>
+  User's full name displayed throughout the platform
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  User password (minimum 8 characters for registration)
+</ParamField>
+
+<ParamField path="amputationType" type="string" optional>
+  Type of amputation: "Brazo", "Mano", "Pierna", "Pie", "Múltiples", or "Prefiero no decir"
+</ParamField>
+
+<ParamField path="dateOfBirth" type="string" optional>
+  User's date of birth in ISO format
+</ParamField>
+
+<ParamField path="profilePhoto" type="string" optional>
+  Base64-encoded profile photo (max 5MB)
+</ParamField>
+
+<ParamField path="registeredAt" type="string" required>
+  ISO timestamp of when the user registered
+</ParamField>
+
+## Registration Flow
+
+### Registration Form
+
+The registration form in `Auth.tsx` collects user information with comprehensive validation:
+
+```typescript Auth.tsx:75-143
+const handleRegister = (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  setSuccess("");
+
+  // Validations
+  if (!fullName || !email || !username || !password || !confirmPassword) {
+    setError("Por favor completa todos los campos obligatorios");
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    setError("Por favor ingresa un correo electrónico válido");
+    return;
+  }
+
+  if (password.length < 8) {
+    setError("La contraseña debe tener al menos 8 caracteres");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    setError("Las contraseñas no coinciden");
+    return;
+  }
+
+  const users = getUsers();
+  
+  if (users.some(u => u.email === email)) {
+    setError("Ya existe una cuenta con este correo electrónico");
+    return;
+  }
+
+  if (users.some(u => u.username === username)) {
+    setError("Este nombre de usuario ya está en uso");
+    return;
+  }
+
+  // Crear nuevo usuario
+  const newUser: User = {
+    id: Date.now().toString(),
+    email,
+    username,
+    fullName,
+    password,
+    amputationType: amputationType || undefined,
+    dateOfBirth: dateOfBirth ? dateOfBirth.toISOString() : undefined,
+    registeredAt: new Date().toISOString(),
+  };
+
+  addUser(newUser);
+  setSuccess("¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.");
+  toast.success("Cuenta creada exitosamente");
+  
+  // Limpiar formulario y cambiar a login
+  // ...
+  setTimeout(() => {
+    setMode("login");
+    setSuccess("");
+  }, 2000);
+};
+```
+
+### Validation Rules
+
+<CardGroup cols={2}>
+  <Card title="Required Fields" icon="circle-exclamation">
+    - Full name
+    - Email (valid format)
+    - Username (unique)
+    - Password (min 8 chars)
+    - Password confirmation
+  </Card>
+  
+  <Card title="Optional Fields" icon="circle-info">
+    - Date of birth
+    - Amputation type
+    - Profile photo
+  </Card>
+</CardGroup>
+
+### Email Validation
+
+Email addresses are validated using a regex pattern:
+
+```typescript
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  setError("Por favor ingresa un correo electrónico válido");
+  return;
+}
+```
+
+## Login Flow
+
+### Flexible Login
+
+Users can login with either their email or username:
+
+```typescript Auth.tsx:52-73
+const handleLogin = (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  
+  if (!loginEmail || !loginPassword) {
+    setError("Por favor completa todos los campos");
+    return;
+  }
+
+  const users = getUsers();
+  const user = users.find(
+    u => (u.email === loginEmail || u.username === loginEmail) && u.password === loginPassword
+  );
+
+  if (user) {
+    setCurrentUser(user.id);
+    toast.success(`¡Bienvenido/a de nuevo, ${user.fullName}!`);
+    navigate("/dashboard");
+  } else {
+    setError("Credenciales incorrectas. Por favor verifica tu correo/usuario y contraseña.");
+  }
+};
+```
+
+### Remember Me Feature
+
+The login form includes a "Remember Me" checkbox for future enhancement:
+
+```typescript Auth.tsx:211-222
+<div className="flex items-center">
+  <input
+    type="checkbox"
+    id="remember-me"
+    checked={rememberMe}
+    onChange={(e) => setRememberMe(e.target.checked)}
+    className="mr-2 h-4 w-4"
+  />
+  <Label htmlFor="remember-me" className="cursor-pointer font-normal">
+    Recordarme
+  </Label>
+</div>
+```
+
+## Session Management
+
+### Storage Functions
+
+The session is managed through localStorage with these key functions:
+
+```typescript storage.ts:185-198
+export const getCurrentUser = (): User | null => {
+  const currentUserId = localStorage.getItem("currentUser");
+  if (!currentUserId) return null;
+  const users = getUsers();
+  return users.find(u => u.id === currentUserId) || null;
+};
+
+export const setCurrentUser = (userId: string) => {
+  localStorage.setItem("currentUser", userId);
+};
+
+export const logout = () => {
+  localStorage.removeItem("currentUser");
+};
+```
+
+### Protected Routes
+
+The `ProtectedRoute` component ensures users are authenticated:
+
+```typescript ProtectedRoute.tsx
+import { Navigate } from "react-router-dom";
+import { getCurrentUser } from "@/lib/storage";
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const currentUser = getCurrentUser();
+  
+  if (!currentUser) {
+    return <Navigate to="/auth?mode=login" replace />;
+  }
+  
+  return <>{children}</>;
+};
+```
+
+### Session Checks
+
+Most pages check authentication status on mount:
+
+```typescript Dashboard.tsx:31-39
+useEffect(() => {
+  const user = getCurrentUser();
+  if (!user) {
+    navigate("/auth?mode=login");
+    return;
+  }
+  setCurrentUser(user);
+  loadPosts();
+}, [navigate]);
+```
+
+## Profile Management
+
+### View Profile
+
+Users can view their complete profile information including:
+
+<CardGroup cols={2}>
+  <Card title="Basic Info" icon="user">
+    - Full name
+    - Username
+    - Email address
+    - Profile photo
+  </Card>
+  
+  <Card title="Additional Info" icon="circle-info">
+    - Age (calculated from DOB)
+    - Amputation type
+    - Member since date
+    - Post count
+    - Saved posts count
+  </Card>
+</CardGroup>
+
+### Edit Profile
+
+Users can update their profile with validation:
+
+```typescript Profile.tsx:81-136
+const handleSaveProfile = () => {
+  if (!editName.trim()) {
+    toast.error("El nombre no puede estar vacío");
+    return;
+  }
+
+  // Validar contraseña si se está intentando cambiar
+  if (currentPassword || newPassword || confirmNewPassword) {
+    if (!currentPassword) {
+      toast.error("Debes ingresar tu contraseña actual");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("La nueva contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
+  }
+
+  const users = getUsers();
+  const userIndex = users.findIndex(u => u.id === currentUser.id);
+  
+  if (userIndex !== -1) {
+    users[userIndex].fullName = editName.trim();
+    users[userIndex].amputationType = editAmputationType || undefined;
+    users[userIndex].dateOfBirth = editDateOfBirth?.toISOString();
+    users[userIndex].profilePhoto = editProfilePhoto.trim() || undefined;
+    
+    if (newPassword) {
+      users[userIndex].password = newPassword;
+    }
+    
+    localStorage.setItem("users", JSON.stringify(users));
+    setCurrentUser(users[userIndex]);
+    toast.success("Perfil actualizado exitosamente");
+  }
+};
+```
+
+### Profile Photo Upload
+
+Users can upload profile photos with size validation:
+
+```typescript Profile.tsx:56-72
+const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen debe ser menor a 5MB");
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setEditProfilePhoto(result);
+      setPhotoPreview(result);
+    };
+    reader.readAsDataURL(file);
+  }
+};
+```
+
+<Note>
+  Profile photos are stored as Base64-encoded strings in localStorage, with a maximum size of 5MB.
+</Note>
+
+## Security Considerations
+
+<Warning>
+  The current authentication implementation stores passwords in plain text in localStorage. This is suitable for a prototype/demo but **should not be used in production**. For production applications:
+  - Use proper backend authentication with JWT tokens
+  - Hash passwords using bcrypt or similar
+  - Implement HTTPS
+  - Add session expiration
+  - Consider OAuth providers
+</Warning>
+
+## User Functions Reference
+
+### Storage API
+
+<CodeGroup>
+
+```typescript getUsers()
+export const getUsers = (): User[] => {
+  const users = localStorage.getItem("users");
+  return users ? JSON.parse(users) : [];
+};
+```
+
+```typescript addUser()
+export const addUser = (user: User) => {
+  const users = getUsers();
+  users.push(user);
+  localStorage.setItem("users", JSON.stringify(users));
+};
+```
+
+```typescript getCurrentUser()
+export const getCurrentUser = (): User | null => {
+  const currentUserId = localStorage.getItem("currentUser");
+  if (!currentUserId) return null;
+  const users = getUsers();
+  return users.find(u => u.id === currentUserId) || null;
+};
+```
+
+```typescript logout()
+export const logout = () => {
+  localStorage.removeItem("currentUser");
+};
+```
+
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Posts" icon="newspaper" href="/features/posts">
+    Learn about creating and viewing posts
+  </Card>
+  
+  <Card title="Community Features" icon="users" href="/features/community">
+    Explore likes, comments, and saved posts
+  </Card>
+  
+  <Card title="Accessibility" icon="universal-access" href="/features/accessibility">
+    Discover accessibility features
+  </Card>
+  
+  <Card title="Storage API" icon="code" href="/reference/storage">
+    View complete storage API documentation
+  </Card>
+</CardGroup>

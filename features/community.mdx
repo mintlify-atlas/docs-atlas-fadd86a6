@@ -1,0 +1,591 @@
+---
+title: Community Features
+description: Social interactions including likes, comments, and saved posts in DigiForum
+icon: users
+---
+
+## Overview
+
+DigiForum provides rich social interaction features that enable community members to engage with posts through likes, comments, and bookmarking. These features foster community engagement and help users track content that resonates with them.
+
+## Data Models
+
+### PostLike Interface
+
+Tracks which users have liked which posts:
+
+```typescript storage.ts:34-39
+export interface PostLike {
+  id: string;
+  postId: string;
+  userId: string;
+  createdAt: string;
+}
+```
+
+<ParamField path="id" type="string" required>
+  Unique identifier for the like (format: `like_${timestamp}_${random}`)
+</ParamField>
+
+<ParamField path="postId" type="string" required>
+  ID of the post being liked
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  ID of the user who liked the post
+</ParamField>
+
+<ParamField path="createdAt" type="string" required>
+  ISO timestamp of when the like was created
+</ParamField>
+
+### SavedPost Interface
+
+Tracks which posts users have bookmarked:
+
+```typescript storage.ts:41-46
+export interface SavedPost {
+  id: string;
+  postId: string;
+  userId: string;
+  createdAt: string;
+}
+```
+
+<ParamField path="id" type="string" required>
+  Unique identifier for the saved post (format: `save_${timestamp}_${random}`)
+</ParamField>
+
+<ParamField path="postId" type="string" required>
+  ID of the post being saved
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  ID of the user who saved the post
+</ParamField>
+
+<ParamField path="createdAt" type="string" required>
+  ISO timestamp of when the post was saved
+</ParamField>
+
+### Comment Interface
+
+Represents user comments on posts:
+
+```typescript storage.ts:24-31
+export interface Comment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+```
+
+<ParamField path="id" type="string" required>
+  Unique identifier for the comment (timestamp-based)
+</ParamField>
+
+<ParamField path="postId" type="string" required>
+  ID of the post being commented on
+</ParamField>
+
+<ParamField path="authorId" type="string" required>
+  User ID of the comment author
+</ParamField>
+
+<ParamField path="authorName" type="string" required>
+  Display name of the comment author
+</ParamField>
+
+<ParamField path="content" type="string" required>
+  The comment text content
+</ParamField>
+
+<ParamField path="createdAt" type="string" required>
+  ISO timestamp of when the comment was created
+</ParamField>
+
+## Liking Posts
+
+### Toggle Like Functionality
+
+Likes work as a toggle - clicking again removes the like:
+
+```typescript storage.ts:246-271
+export const togglePostLike = (postId: string, userId: string): { liked: boolean; totalLikes: number } => {
+  const likes = getPostLikes();
+  const existingLikeIndex = likes.findIndex(
+    like => like.postId === postId && like.userId === userId
+  );
+
+  if (existingLikeIndex !== -1) {
+    // Quitar like
+    likes.splice(existingLikeIndex, 1);
+    localStorage.setItem("postLikes", JSON.stringify(likes));
+    const totalLikes = likes.filter(like => like.postId === postId).length;
+    return { liked: false, totalLikes };
+  } else {
+    // Agregar like
+    const newLike: PostLike = {
+      id: `like_${Date.now()}_${Math.random()}`,
+      postId,
+      userId,
+      createdAt: new Date().toISOString(),
+    };
+    likes.push(newLike);
+    localStorage.setItem("postLikes", JSON.stringify(likes));
+    const totalLikes = likes.filter(like => like.postId === postId).length;
+    return { liked: true, totalLikes };
+  }
+};
+```
+
+### Like Button UI
+
+The like button displays a heart emoji and count:
+
+```typescript Dashboard.tsx:440-452
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={() => {
+    togglePostLike(post.id, currentUser?.id);
+    loadPosts();
+  }}
+  className="flex items-center gap-1"
+>
+  {hasUserLikedPost(post.id, currentUser?.id) ? "❤️" : "🤍"}
+  {getPostLikesCount(post.id)}
+</Button>
+```
+
+<CardGroup cols={2}>
+  <Card title="Liked State" icon="heart">
+    Shows a red heart (❤️) when the user has liked the post
+  </Card>
+  
+  <Card title="Unliked State" icon="heart">
+    Shows a white heart (🤍) when the user hasn't liked the post
+  </Card>
+</CardGroup>
+
+### Like Helper Functions
+
+<CodeGroup>
+
+```typescript getPostLikesCount()
+export const getPostLikesCount = (postId: string): number => {
+  const likes = getPostLikes();
+  return likes.filter(like => like.postId === postId).length;
+};
+```
+
+```typescript hasUserLikedPost()
+export const hasUserLikedPost = (postId: string, userId: string): boolean => {
+  const likes = getPostLikes();
+  return likes.some(like => like.postId === postId && like.userId === userId);
+};
+```
+
+```typescript getPostLikes()
+export const getPostLikes = (): PostLike[] => {
+  const likes = localStorage.getItem("postLikes");
+  return likes ? JSON.parse(likes) : [];
+};
+```
+
+</CodeGroup>
+
+## Commenting on Posts
+
+### Adding Comments
+
+Users can add comments to posts from the PostDetail page:
+
+```typescript PostDetail.tsx:54-80
+const handleAddComment = (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!newComment.trim()) {
+    toast.error("Por favor escribe un comentario");
+    return;
+  }
+
+  if (!currentUser || !id) {
+    toast.error("Error al agregar comentario");
+    return;
+  }
+
+  const comment: Comment = {
+    id: Date.now().toString(),
+    postId: id,
+    authorId: currentUser.id,
+    authorName: currentUser.fullName,
+    content: newComment.trim(),
+    createdAt: new Date().toISOString(),
+  };
+
+  addComment(comment);
+  toast.success("Comentario agregado");
+  setNewComment("");
+  loadComments(id);
+};
+```
+
+### Comment Form
+
+The comment form includes a textarea and submit button:
+
+```tsx PostDetail.tsx:158-175
+<form onSubmit={handleAddComment} className="space-y-3">
+  <Label htmlFor="new-comment" className="text-sm sm:text-base font-semibold">
+    Agregar un comentario
+  </Label>
+  <Textarea
+    id="new-comment"
+    placeholder="Comparte tu opinión o experiencia..."
+    value={newComment}
+    onChange={(e) => setNewComment(e.target.value)}
+    rows={4}
+    className="resize-none text-sm sm:text-base"
+    aria-label="Escribe tu comentario"
+  />
+  <Button type="submit" aria-label="Enviar comentario">
+    <Send className="mr-2 h-4 w-4" />
+    Comentar
+  </Button>
+</form>
+```
+
+### Displaying Comments
+
+Comments are displayed in chronological order:
+
+```tsx PostDetail.tsx:180-206
+<div className="space-y-4 sm:space-y-6">
+  {comments.length === 0 ? (
+    <p className="text-center text-sm sm:text-base text-muted-foreground py-6 sm:py-8">
+      No hay comentarios aún. ¡Sé el primero en comentar!
+    </p>
+  ) : (
+    comments.map((comment) => (
+      <div key={comment.id} className="border-l-2 border-primary/30 pl-3 sm:pl-4 py-2">
+        <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2 mb-2">
+          <span className="font-semibold text-xs sm:text-sm">{comment.authorName}</span>
+          <span className="text-xs text-muted-foreground">
+            {new Date(comment.createdAt).toLocaleDateString('es-ES', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </span>
+        </div>
+        <p className="text-sm sm:text-base text-foreground whitespace-pre-wrap">
+          {comment.content}
+        </p>
+      </div>
+    ))
+  )}
+</div>
+```
+
+### Comment Count Display
+
+The comments section header shows the total count:
+
+```tsx PostDetail.tsx:151-154
+<CardTitle className="flex items-center gap-2 text-lg sm:text-xl md:text-2xl">
+  <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5" />
+  Comentarios ({comments.length})
+</CardTitle>
+```
+
+### Comment Storage Functions
+
+<CodeGroup>
+
+```typescript getComments()
+export const getComments = (): Comment[] => {
+  const comments = localStorage.getItem("comments");
+  return comments ? JSON.parse(comments) : [];
+};
+```
+
+```typescript getCommentsByPost()
+export const getCommentsByPost = (postId: string): Comment[] => {
+  const comments = getComments();
+  return comments.filter(c => c.postId === postId);
+};
+```
+
+```typescript addComment()
+export const addComment = (comment: Comment) => {
+  const comments = getComments();
+  comments.push(comment);
+  localStorage.setItem("comments", JSON.stringify(comments));
+};
+```
+
+</CodeGroup>
+
+## Saving Posts
+
+### Toggle Save Functionality
+
+Similar to likes, saves work as a toggle:
+
+```typescript storage.ts:290-313
+export const toggleSavedPost = (postId: string, userId: string): { saved: boolean } => {
+  const savedPosts = getSavedPosts();
+  const existingSaveIndex = savedPosts.findIndex(
+    save => save.postId === postId && save.userId === userId
+  );
+
+  if (existingSaveIndex !== -1) {
+    // Quitar guardado
+    savedPosts.splice(existingSaveIndex, 1);
+    localStorage.setItem("savedPosts", JSON.stringify(savedPosts));
+    return { saved: false };
+  } else {
+    // Guardar publicación
+    const newSave: SavedPost = {
+      id: `save_${Date.now()}_${Math.random()}`,
+      postId,
+      userId,
+      createdAt: new Date().toISOString(),
+    };
+    savedPosts.push(newSave);
+    localStorage.setItem("savedPosts", JSON.stringify(savedPosts));
+    return { saved: true };
+  }
+};
+```
+
+### Save Button UI
+
+The save button uses a pin emoji to indicate saved status:
+
+```typescript Dashboard.tsx:454-465
+<Button
+  variant="ghost"
+  size="sm"
+  onClick={() => {
+    toggleSavedPost(post.id, currentUser?.id);
+    loadPosts();
+  }}
+  className="flex items-center gap-1"
+>
+  {hasUserSavedPost(post.id, currentUser?.id) ? "📌 Guardado" : "📌 Guardar"}
+</Button>
+```
+
+### Viewing Saved Posts
+
+Users can view their saved posts from their profile:
+
+```typescript Profile.tsx:51-53
+const saved = getUserSavedPosts(user.id);
+setSavedPosts(saved);
+```
+
+The profile page displays saved posts in a dedicated tab:
+
+```tsx Profile.tsx:462-481
+<Tabs defaultValue="my-posts" className="w-full">
+  <TabsList className="grid w-full grid-cols-2 mb-6">
+    <TabsTrigger value="my-posts" className="flex items-center gap-2">
+      <FileText className="h-4 w-4" />
+      Mis Publicaciones ({userPosts.length})
+    </TabsTrigger>
+    <TabsTrigger value="saved-posts" className="flex items-center gap-2">
+      <Bookmark className="h-4 w-4" />
+      Guardadas ({savedPosts.length})
+    </TabsTrigger>
+  </TabsList>
+  
+  <TabsContent value="my-posts">
+    {renderPostsList(userPosts, "Comparte tu primera historia con la comunidad")}
+  </TabsContent>
+  
+  <TabsContent value="saved-posts">
+    {renderPostsList(savedPosts, "Aún no has guardado ninguna publicación")}
+  </TabsContent>
+</Tabs>
+```
+
+### Save Helper Functions
+
+<CodeGroup>
+
+```typescript hasUserSavedPost()
+export const hasUserSavedPost = (postId: string, userId: string): boolean => {
+  const savedPosts = getSavedPosts();
+  return savedPosts.some(save => save.postId === postId && save.userId === userId);
+};
+```
+
+```typescript getUserSavedPosts()
+export const getUserSavedPosts = (userId: string): Post[] => {
+  const savedPosts = getSavedPosts();
+  const posts = getPosts();
+  
+  const userSavedPostIds = savedPosts
+    .filter(save => save.userId === userId)
+    .map(save => save.postId);
+  
+  return posts.filter(post => userSavedPostIds.includes(post.id));
+};
+```
+
+```typescript getSavedPosts()
+export const getSavedPosts = (): SavedPost[] => {
+  const saved = localStorage.getItem("savedPosts");
+  return saved ? JSON.parse(saved) : [];
+};
+```
+
+</CodeGroup>
+
+## Sample Data
+
+The platform includes sample comments for demonstration:
+
+```typescript storage.ts:134-162
+const sampleComments: Comment[] = [
+  {
+    id: "1",
+    postId: "1",
+    authorId: "2",
+    authorName: "Carlos Rodríguez",
+    content: "¡Felicidades María! Es un gran paso. La adaptación lleva tiempo pero vale la pena.",
+    createdAt: "2024-11-01T12:00:00Z",
+  },
+  {
+    id: "2",
+    postId: "1",
+    authorId: "3",
+    authorName: "Ana Martínez",
+    content: "Qué emocionante! Recuerdo mi primer día también. Ánimo con la rehabilitación.",
+    createdAt: "2024-11-01T14:30:00Z",
+  },
+  // More sample comments...
+];
+```
+
+## Community Engagement Features
+
+<CardGroup cols={2}>
+  <Card title="Like Posts" icon="heart">
+    Show appreciation and support with one-click likes that display total counts
+  </Card>
+  
+  <Card title="Comment" icon="message">
+    Engage in discussions by commenting on posts with full threading support
+  </Card>
+  
+  <Card title="Save Posts" icon="bookmark">
+    Bookmark posts for later reference, viewable from your profile
+  </Card>
+  
+  <Card title="View Stats" icon="chart-simple">
+    Track engagement with like counts and comment counts on all posts
+  </Card>
+</CardGroup>
+
+## User Interaction Flow
+
+<Steps>
+  <Step title="Discover Post">
+    User browses posts on the Dashboard or finds posts through search/filtering
+  </Step>
+  
+  <Step title="Quick Actions">
+    User can like or save a post directly from the post card on the Dashboard
+  </Step>
+  
+  <Step title="Read Full Post">
+    User clicks "Leer más" to view the full post content on the PostDetail page
+  </Step>
+  
+  <Step title="Add Comment">
+    User writes and submits a comment on the PostDetail page
+  </Step>
+  
+  <Step title="View Saved Posts">
+    User accesses their saved posts from their profile page
+  </Step>
+</Steps>
+
+## Storage Initialization
+
+Likes and saved posts are initialized as empty arrays:
+
+```typescript storage.ts:164-170
+// Inicializar likes y guardados vacíos
+if (!localStorage.getItem("postLikes")) {
+  localStorage.setItem("postLikes", JSON.stringify([]));
+}
+if (!localStorage.getItem("savedPosts")) {
+  localStorage.setItem("savedPosts", JSON.stringify([]));
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Like Management">
+    - Likes are user-specific and persist across sessions
+    - The toggle mechanism prevents duplicate likes
+    - Total like counts are calculated dynamically
+    - UI updates immediately after like/unlike actions
+  </Accordion>
+  
+  <Accordion title="Comment Management">
+    - Comments are immutable once posted (no edit/delete in current version)
+    - Comments preserve whitespace and line breaks
+    - Empty comments are rejected with validation
+    - Timestamps show full date and time for context
+  </Accordion>
+  
+  <Accordion title="Save Management">
+    - Saved posts are private to each user
+    - The toggle mechanism prevents duplicate saves
+    - Saved posts can be viewed from the profile page
+    - Saves persist even if the original post is modified
+  </Accordion>
+  
+  <Accordion title="UI/UX Considerations">
+    - All interactions provide immediate visual feedback
+    - Toast notifications confirm successful actions
+    - Icons and emojis provide intuitive visual indicators
+    - Counts update in real-time after interactions
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  The community features encourage engagement while maintaining simplicity. Users can express support through likes, engage in discussions through comments, and curate content through saves.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Posts" icon="newspaper" href="/features/posts">
+    Learn about creating and viewing posts
+  </Card>
+  
+  <Card title="Authentication" icon="shield-check" href="/features/authentication">
+    Understand user authentication and profiles
+  </Card>
+  
+  <Card title="Accessibility" icon="universal-access" href="/features/accessibility">
+    Explore accessibility features
+  </Card>
+  
+  <Card title="Storage API" icon="code" href="/reference/storage">
+    View complete storage API documentation
+  </Card>
+</CardGroup>

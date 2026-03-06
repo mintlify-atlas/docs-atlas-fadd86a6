@@ -1,0 +1,757 @@
+---
+title: 'UI Component Library'
+description: 'Overview of shadcn/ui components used in DigiForum'
+---
+
+## Overview
+
+DigiForum uses [shadcn/ui](https://ui.shadcn.com/), a collection of re-usable components built with Radix UI and Tailwind CSS. These components are copied directly into the project and can be customized as needed.
+
+## Location
+
+```
+~/workspace/source/src/components/ui/
+```
+
+## Component Categories
+
+<CardGroup cols={2}>
+  <Card title="Form Components" icon="input-text">
+    Input, Textarea, Select, Checkbox, Radio Group, Switch, Slider
+  </Card>
+  
+  <Card title="Layout Components" icon="table-cells">
+    Card, Separator, Tabs, Accordion, Collapsible, Resizable
+  </Card>
+  
+  <Card title="Navigation" icon="bars">
+    Button, Dropdown Menu, Navigation Menu, Menubar, Breadcrumb
+  </Card>
+  
+  <Card title="Feedback" icon="bell">
+    Toast, Sonner, Alert, Alert Dialog, Dialog, Sheet, Drawer
+  </Card>
+  
+  <Card title="Display" icon="eye">
+    Badge, Avatar, Skeleton, Progress, Table, Calendar, Chart
+  </Card>
+  
+  <Card title="Overlay" icon="layer-group">
+    Tooltip, Popover, Hover Card, Context Menu, Command
+  </Card>
+</CardGroup>
+
+## Commonly Used Components
+
+### Button
+
+The Button component is the most widely used component in DigiForum, featuring multiple variants and sizes.
+
+**Location:** `~/workspace/source/src/components/ui/button.tsx`
+
+#### Props Interface
+
+```typescript
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+}
+```
+
+#### Variants
+
+<CardGroup cols={3}>
+  <Card title="default">
+    Dark button with white text
+    
+    `bg-button-dark text-white`
+  </Card>
+  
+  <Card title="destructive">
+    Red button for dangerous actions
+    
+    Used for delete operations
+  </Card>
+  
+  <Card title="outline">
+    Border with transparent background
+    
+    Secondary actions
+  </Card>
+  
+  <Card title="secondary">
+    Secondary background color
+    
+    Alternative actions
+  </Card>
+  
+  <Card title="ghost">
+    Transparent, hover highlights
+    
+    Subtle interactions
+  </Card>
+  
+  <Card title="link">
+    Styled as underlined link
+    
+    In-text actions
+  </Card>
+</CardGroup>
+
+#### Sizes
+
+<CardGroup cols={2}>
+  <Card title="default">
+    Standard height (40px)
+    
+    `h-10 px-4 py-2`
+  </Card>
+  
+  <Card title="sm">
+    Small button (36px)
+    
+    `h-9 px-3`
+  </Card>
+  
+  <Card title="lg">
+    Large button (44px)
+    
+    `h-11 px-8`
+  </Card>
+  
+  <Card title="icon">
+    Square icon button
+    
+    `h-10 w-10`
+  </Card>
+</CardGroup>
+
+#### Usage Examples
+
+```typescript
+import { Button } from "@/components/ui/button";
+
+// Default button
+<Button>Click me</Button>
+
+// Outline variant, small size
+<Button variant="outline" size="sm">Cancel</Button>
+
+// Ghost button with icon
+<Button variant="ghost" size="icon">
+  <Settings className="h-4 w-4" />
+</Button>
+
+// As child (renders as custom component)
+<Button asChild>
+  <Link to="/dashboard">Go to Dashboard</Link>
+</Button>
+```
+
+#### Real Usage in DigiForum
+
+From `~/workspace/source/src/components/Navbar.tsx`:
+
+```typescript
+<Button 
+  variant="outline" 
+  size="sm" 
+  onClick={handleLogout}
+  aria-label="Cerrar sesión"
+  className="text-xs sm:text-sm"
+>
+  <LogOut className="h-4 w-4 sm:mr-2" aria-hidden="true" />
+  <span className="hidden sm:inline">Cerrar Sesión</span>
+</Button>
+```
+
+---
+
+### Card
+
+Card components provide a consistent container with optional header, content, and footer sections.
+
+**Location:** `~/workspace/source/src/components/ui/card.tsx`
+
+#### Components
+
+<CardGroup cols={3}>
+  <Card title="Card">
+    Main container
+    
+    Rounded with border and shadow
+  </Card>
+  
+  <Card title="CardHeader">
+    Top section with padding
+    
+    Contains title and description
+  </Card>
+  
+  <Card title="CardTitle">
+    Heading text (h3)
+    
+    Large semibold text
+  </Card>
+  
+  <Card title="CardDescription">
+    Subtitle text
+    
+    Muted smaller text
+  </Card>
+  
+  <Card title="CardContent">
+    Main content area
+    
+    Body content with padding
+  </Card>
+  
+  <Card title="CardFooter">
+    Bottom section
+    
+    Actions and metadata
+  </Card>
+</CardGroup>
+
+#### Usage Example
+
+```typescript
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+<Card>
+  <CardHeader>
+    <CardTitle>Card Title</CardTitle>
+    <CardDescription>Card description text</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <p>Main content goes here</p>
+  </CardContent>
+  <CardFooter>
+    <Button>Action</Button>
+  </CardFooter>
+</Card>
+```
+
+#### Real Usage in DigiForum
+
+From `~/workspace/source/src/pages/Dashboard.tsx:402`:
+
+```typescript
+<Card className="shadow-soft border-none hover:shadow-medium transition-shadow">
+  <CardHeader>
+    <div className="flex items-center gap-2 mb-2">
+      <Badge className={getCategoryColor(post.category)}>
+        {post.category}
+      </Badge>
+    </div>
+    <CardTitle className="text-xl mb-2">
+      <h3>{post.title}</h3>
+    </CardTitle>
+    <CardDescription className="flex items-center gap-4 text-sm">
+      <span>Por {post.authorName}</span>
+      <span className="flex items-center gap-1">
+        <Calendar className="h-4 w-4" />
+        <time dateTime={post.createdAt}>
+          {new Date(post.createdAt).toLocaleDateString("es-ES")}
+        </time>
+      </span>
+    </CardDescription>
+  </CardHeader>
+  <CardContent>
+    <p className="text-muted-foreground line-clamp-3">
+      {post.content}
+    </p>
+  </CardContent>
+  <CardFooter>
+    <Button variant="outline">Leer más</Button>
+  </CardFooter>
+</Card>
+```
+
+---
+
+### Input
+
+Standard text input component with consistent styling.
+
+**Location:** `~/workspace/source/src/components/ui/input.tsx`
+
+#### Props
+
+```typescript
+const Input = React.forwardRef<
+  HTMLInputElement, 
+  React.ComponentProps<"input">
+>
+```
+
+Accepts all standard HTML input attributes plus custom className.
+
+#### Features
+
+<CardGroup cols={2}>
+  <Card title="Styling">
+    Consistent border, padding, and focus states
+  </Card>
+  
+  <Card title="Accessibility">
+    Focus ring with offset for keyboard navigation
+  </Card>
+  
+  <Card title="States">
+    Disabled state with reduced opacity
+  </Card>
+  
+  <Card title="File Input">
+    Custom styling for file inputs
+  </Card>
+</CardGroup>
+
+#### Usage Example
+
+```typescript
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+<div className="space-y-2">
+  <Label htmlFor="email">Email</Label>
+  <Input 
+    id="email"
+    type="email" 
+    placeholder="Enter your email"
+    required
+  />
+</div>
+```
+
+---
+
+### Dropdown Menu
+
+Complex dropdown menu system built on Radix UI primitives.
+
+**Location:** `~/workspace/source/src/components/ui/dropdown-menu.tsx`
+
+#### Components
+
+<CardGroup cols={3}>
+  <Card title="DropdownMenu">
+    Root container
+  </Card>
+  
+  <Card title="DropdownMenuTrigger">
+    Button that opens menu
+  </Card>
+  
+  <Card title="DropdownMenuContent">
+    Menu container
+  </Card>
+  
+  <Card title="DropdownMenuItem">
+    Individual menu item
+  </Card>
+  
+  <Card title="DropdownMenuLabel">
+    Section header
+  </Card>
+  
+  <Card title="DropdownMenuSeparator">
+    Visual divider
+  </Card>
+  
+  <Card title="DropdownMenuCheckboxItem">
+    Item with checkbox
+  </Card>
+  
+  <Card title="DropdownMenuRadioGroup">
+    Radio button group
+  </Card>
+  
+  <Card title="DropdownMenuSub">
+    Nested submenu
+  </Card>
+</CardGroup>
+
+#### Usage Example
+
+From `~/workspace/source/src/components/AccessibilityMenu.tsx:144`:
+
+```typescript
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button size="icon" aria-label="Menu">
+      <Settings className="h-6 w-6" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end" className="w-64">
+    <DropdownMenuLabel>Options</DropdownMenuLabel>
+    <DropdownMenuSeparator />
+    <DropdownMenuItem onClick={handleAction}>
+      <Icon className="mr-2 h-4 w-4" />
+      Action Text
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
+---
+
+### Badge
+
+Small label component for categories, status indicators, and tags.
+
+**Location:** `~/workspace/source/src/components/ui/badge.tsx`
+
+#### Variants
+
+<CardGroup cols={3}>
+  <Card title="default">
+    Primary badge style
+  </Card>
+  
+  <Card title="secondary">
+    Muted background
+  </Card>
+  
+  <Card title="destructive">
+    Red for warnings
+  </Card>
+  
+  <Card title="outline">
+    Border only
+  </Card>
+</CardGroup>
+
+#### Usage
+
+```typescript
+import { Badge } from "@/components/ui/badge";
+
+<Badge>New</Badge>
+<Badge variant="secondary">Draft</Badge>
+<Badge variant="destructive">Urgent</Badge>
+<Badge variant="outline">Info</Badge>
+```
+
+---
+
+### Select
+
+Dropdown select component for forms.
+
+**Location:** `~/workspace/source/src/components/ui/select.tsx`
+
+#### Components
+
+- `Select` - Root container
+- `SelectTrigger` - Button that opens select
+- `SelectContent` - Options container
+- `SelectItem` - Individual option
+- `SelectValue` - Displays selected value
+- `SelectGroup` - Groups options
+- `SelectLabel` - Group label
+
+#### Usage Example
+
+From `~/workspace/source/src/pages/Dashboard.tsx:322`:
+
+```typescript
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+<Select value={category} onValueChange={setCategory}>
+  <SelectTrigger id="post-category">
+    <SelectValue placeholder="Selecciona una categoría" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="Experiencias personales">
+      Experiencias personales
+    </SelectItem>
+    <SelectItem value="Preguntas y respuestas">
+      Preguntas y respuestas
+    </SelectItem>
+    <SelectItem value="Recursos útiles">
+      Recursos útiles
+    </SelectItem>
+  </SelectContent>
+</Select>
+```
+
+---
+
+### Dialog
+
+Modal dialog component for important interactions.
+
+**Location:** `~/workspace/source/src/components/ui/dialog.tsx`
+
+#### Components
+
+- `Dialog` - Root container
+- `DialogTrigger` - Opens the dialog
+- `DialogContent` - Modal content
+- `DialogHeader` - Top section
+- `DialogTitle` - Modal title
+- `DialogDescription` - Subtitle text
+- `DialogFooter` - Bottom actions
+
+#### Usage Example
+
+From `~/workspace/source/src/pages/Dashboard.tsx:136`:
+
+```typescript
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+  <DialogTrigger asChild>
+    <Button variant="outline">Open Dialog</Button>
+  </DialogTrigger>
+  <DialogContent className="max-w-2xl">
+    <DialogHeader>
+      <DialogTitle>Dialog Title</DialogTitle>
+      <DialogDescription>
+        Dialog description text
+      </DialogDescription>
+    </DialogHeader>
+    {/* Content */}
+  </DialogContent>
+</Dialog>
+```
+
+---
+
+### Textarea
+
+Multi-line text input component.
+
+**Location:** `~/workspace/source/src/components/ui/textarea.tsx`
+
+#### Usage
+
+```typescript
+import { Textarea } from "@/components/ui/textarea";
+
+<Textarea 
+  placeholder="Enter your message"
+  rows={6}
+  className="resize-none"
+/>
+```
+
+---
+
+### Label
+
+Form label component with accessibility support.
+
+**Location:** `~/workspace/source/src/components/ui/label.tsx`
+
+#### Usage
+
+```typescript
+import { Label } from "@/components/ui/label";
+
+<Label htmlFor="input-id">Label Text</Label>
+<Input id="input-id" />
+```
+
+---
+
+### Toast Notifications
+
+DigiForum uses two toast notification systems:
+
+#### Sonner
+
+**Location:** `~/workspace/source/src/components/ui/sonner.tsx`
+
+Primary toast system used throughout the app.
+
+```typescript
+import { toast } from "sonner";
+
+toast.success("Operation successful!");
+toast.error("Something went wrong");
+toast.info("Information message");
+toast.warning("Warning message");
+```
+
+#### Toast (Radix UI)
+
+**Location:** `~/workspace/source/src/components/ui/toast.tsx`
+
+Alternative toast system based on Radix UI.
+
+---
+
+## Complete Component List
+
+<CardGroup cols={4}>
+  <Card title="accordion" />
+  <Card title="alert-dialog" />
+  <Card title="alert" />
+  <Card title="aspect-ratio" />
+  <Card title="avatar" />
+  <Card title="badge" />
+  <Card title="breadcrumb" />
+  <Card title="button" />
+  <Card title="calendar" />
+  <Card title="card" />
+  <Card title="carousel" />
+  <Card title="chart" />
+  <Card title="checkbox" />
+  <Card title="collapsible" />
+  <Card title="command" />
+  <Card title="context-menu" />
+  <Card title="dialog" />
+  <Card title="drawer" />
+  <Card title="dropdown-menu" />
+  <Card title="form" />
+  <Card title="hover-card" />
+  <Card title="input-otp" />
+  <Card title="input" />
+  <Card title="label" />
+  <Card title="menubar" />
+  <Card title="navigation-menu" />
+  <Card title="pagination" />
+  <Card title="popover" />
+  <Card title="progress" />
+  <Card title="radio-group" />
+  <Card title="resizable" />
+  <Card title="scroll-area" />
+  <Card title="select" />
+  <Card title="separator" />
+  <Card title="sheet" />
+  <Card title="sidebar" />
+  <Card title="skeleton" />
+  <Card title="slider" />
+  <Card title="sonner" />
+  <Card title="switch" />
+  <Card title="table" />
+  <Card title="tabs" />
+  <Card title="textarea" />
+  <Card title="toast" />
+  <Card title="toaster" />
+  <Card title="toggle-group" />
+  <Card title="toggle" />
+  <Card title="tooltip" />
+</CardGroup>
+
+## Styling Approach
+
+All components use:
+
+<CardGroup cols={3}>
+  <Card title="Tailwind CSS" icon="palette">
+    Utility-first CSS framework
+  </Card>
+  
+  <Card title="CVA" icon="layer-group">
+    Class Variance Authority for variants
+  </Card>
+  
+  <Card title="cn() Helper" icon="wand-magic-sparkles">
+    Utility function for merging Tailwind classes
+  </Card>
+</CardGroup>
+
+### cn() Utility
+
+Imported from `@/lib/utils`, this function intelligently merges Tailwind classes:
+
+```typescript
+import { cn } from "@/lib/utils";
+
+<Button className={cn("custom-class", isActive && "active-class")} />
+```
+
+## Custom Components
+
+In addition to shadcn/ui components, DigiForum includes custom components:
+
+<CardGroup cols={2}>
+  <Card title="NavLink" icon="link">
+    Enhanced React Router NavLink with className support
+    
+    `~/workspace/source/src/components/NavLink.tsx`
+  </Card>
+  
+  <Card title="ProtectedRoute" icon="shield">
+    Route wrapper for authentication
+    
+    `~/workspace/source/src/components/ProtectedRoute.tsx`
+  </Card>
+</CardGroup>
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="shadcn/ui Documentation" icon="book" href="https://ui.shadcn.com">
+    Official documentation for all components
+  </Card>
+  
+  <Card title="Radix UI" icon="layer-group" href="https://www.radix-ui.com">
+    Underlying primitive components
+  </Card>
+  
+  <Card title="Tailwind CSS" icon="palette" href="https://tailwindcss.com">
+    CSS framework documentation
+  </Card>
+  
+  <Card title="Lucide Icons" icon="icons" href="https://lucide.dev">
+    Icon library used throughout
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Tip>
+  Always use the `asChild` prop when wrapping components like Links inside Buttons to avoid invalid HTML nesting.
+</Tip>
+
+<Check>
+  Leverage the built-in variants and sizes before creating custom styles to maintain consistency.
+</Check>
+
+<Check>
+  All form inputs should be paired with Label components using proper `htmlFor` and `id` attributes for accessibility.
+</Check>
+
+<Warning>
+  Don't modify the base component files in `components/ui/` directly. Instead, create wrapper components or use className props for customization.
+</Warning>
+
+## Related Documentation
+
+- [Navbar Component](/reference/components/navbar) - Uses Button and Link components
+- [AccessibilityMenu](/reference/components/accessibility-menu) - Uses Button and DropdownMenu
+- [Theme Configuration](/reference/styling/theme) - Customizing component colors and styles
