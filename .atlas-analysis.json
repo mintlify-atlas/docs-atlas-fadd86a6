@@ -1,0 +1,96 @@
+{
+  "projectType": "saas",
+  "projectName": "DigiForum",
+  "projectDescription": "A digital community platform for people with physical disabilities to share experiences, seek guidance, and build social connections",
+  "theme": "almond",
+  "primaryColor": "#2c3c53",
+  "lightColor": "#8abbf1",
+  "darkColor": "#54749c",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/authentication",
+              "features/posts",
+              "features/community",
+              "features/accessibility"
+            ]
+          },
+          {
+            "group": "User Guide",
+            "pages": [
+              "guides/creating-account",
+              "guides/managing-profile",
+              "guides/creating-posts",
+              "guides/interacting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Technical Reference",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "reference/architecture",
+              "reference/data-models",
+              "reference/storage"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "reference/components/navbar",
+              "reference/components/accessibility-menu",
+              "reference/components/ui-library"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "reference/setup",
+              "reference/deployment"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "User authentication and profile management",
+    "Community post creation with categories",
+    "Post interactions (likes, comments, saves)",
+    "Comprehensive accessibility features",
+    "High contrast and large text modes",
+    "Screen reader support with text-to-speech",
+    "LocalStorage-based data persistence"
+  ],
+  "publicApiSurface": [
+    "initializeStorage()",
+    "getCurrentUser()",
+    "register(user: User)",
+    "login(email: string, password: string)",
+    "logout()",
+    "getPosts()",
+    "addPost(post: Post)",
+    "getPostById(id: string)",
+    "addComment(comment: Comment)",
+    "togglePostLike(postId: string, userId: string)",
+    "toggleSavedPost(postId: string, userId: string)",
+    "AccessibilityMenu component",
+    "ProtectedRoute component",
+    "Navbar component"
+  ]
+}
